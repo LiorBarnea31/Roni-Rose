@@ -1,0 +1,30 @@
+﻿
+@* רכיב משותף להצגת כותרת ותיאור בראש כל עמוד פנימי *@
+
+<div class="mb-8 text-right">
+    <p class="text-xs tracking-[0.2em] uppercase text-secondary mb-2">
+        @Subtitle
+    </p>
+
+    <h1 class="font-headline-md text-2xl sm:text-3xl text-on-surface mb-2">
+        @Title
+    </h1>
+
+    <p class="text-sm text-on-surface-variant leading-relaxed">
+        @Description
+    </p>
+</div>
+
+@code {
+    // כותרת העמוד
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    // כותרת משנה קטנה
+    [Parameter]
+    public string Subtitle { get; set; } = "RONI ROSE";
+
+    // הסבר קצר על העמוד
+    [Parameter]
+    public string Description { get; set; } = "";
+}

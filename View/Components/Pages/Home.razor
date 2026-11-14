@@ -1,7 +1,299 @@
-﻿@page "/"
+﻿
+@page "/"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-<PageTitle>Home</PageTitle>
+@inject NavigationManager Navigation
 
-<h1>Hello, world!</h1>
+<PageTitle>Roni Rose - דף הבית</PageTitle>
 
-Welcome to your new app.
+<!-- ==================== HERO SECTION ==================== -->
+<section class="relative w-full max-w-7xl mx-auto px-4 sm:px-8 pt-4 sm:pt-6 pb-8 sm:pb-12 overflow-hidden">
+    <div class="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden min-h-[520px] lg:h-[620px] flex items-center shadow-[0_16px_40px_rgba(74,66,56,0.14)] border border-[#ede2d6]">
+
+        <!-- וידאו רקע / תמונה -->
+        <video autoplay loop muted playsinline
+               poster="images/WhatsApp%20Image%202026-10-12%20at%2015.26.21.jpeg"
+               class="absolute inset-0 w-full h-full object-cover">
+
+            <source src="images/WhatsApp%20Video%202026-10-12%20at%2015.28.46.mp4" type="video/mp4">
+
+            <img src="images/WhatsApp%20Image%202026-10-12%20at%2015.26.21.jpeg"
+                 alt="Atelier Craft Showcase"
+                 class="w-full h-full object-cover">
+        </video>
+
+        <!-- שכבת הכהיה -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/35 pointer-events-none"></div>
+
+        <!-- אינדיקטור וידאו חי -->
+        <div class="absolute top-4 sm:top-6 left-4 sm:left-8 hidden sm:flex items-center gap-2 bg-[#251f1c]/70 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-[#eee2d6] text-[12px] font-label-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>וידאו חי מהאטלייה • נגינה רציפה</span>
+        </div>
+
+        <!-- תוכן ה-Hero -->
+        <div class="relative z-10 w-full p-6 sm:p-8 lg:p-12 grid grid-cols-12 gap-6 lg:gap-8 items-center">
+
+            <div class="col-span-12 lg:col-span-8 flex flex-col items-start text-right">
+
+                <div class="inline-flex items-center gap-2 bg-[#fdfbf9]/95 backdrop-blur-md px-3.5 sm:px-4 py-1.5 rounded-full text-secondary font-label-sm text-[11px] sm:text-[12px] shadow-sm mb-4 sm:mb-5 border border-[#eee2d6]">
+                    <span class="material-symbols-outlined text-[15px] sm:text-[16px] text-primary">eco</span>
+                    <span class="font-medium">בוטיק שזירה פרימיום • משלוחים אונליין עד פתח הבית</span>
+                </div>
+
+                <h1 class="font-headline-lg text-[32px] sm:text-[40px] lg:text-[52px] leading-[1.2] text-white mb-3 sm:mb-4 font-normal drop-shadow-md">
+                    אמנות שזירת פרחים<br>
+                    <span class="text-[#ffdad3] font-medium">ועיצוב אירועי יוקרה</span>
+                </h1>
+
+                <p class="font-body-lg text-[14px] sm:text-[16px] text-[#eee2d6] max-w-xl leading-relaxed mb-6 sm:mb-8 drop-shadow-sm">
+                    כל יצירה נשזרת בקפידה על ידי אמני הפרחים שלנו מחומרי גלם טריים ופרחים נדירים הנקטפים מדי בוקר. הזמינו בקלות ובמהירות באתר לכל רחבי הארץ עם מעקב משלוח ישיר.
+                </p>
+
+                <!-- כפתורי פעולה -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 w-full sm:w-auto">
+
+                    <button @onclick="GoToShop"
+                            class="px-6 sm:px-8 py-3.5 rounded-lg bg-primary text-white font-label-lg text-[14px] sm:text-[15px] shadow-[0_6px_20px_rgba(138,74,61,0.35)] hover:bg-primary-container transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/20">
+
+                        <span>לצפייה בקטלוג הזרים</span>
+                        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+
+                    </button>
+
+                    <button @onclick="GoToAbout"
+                            class="px-6 py-3.5 rounded-lg bg-[#fdfbf9]/90 backdrop-blur-md text-on-surface font-label-lg text-[14px] sm:text-[15px] hover:bg-white transition-all active:scale-95 border border-white/30 text-center">
+
+                        סיפור הבוטיק שלנו
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- כרטיס תמונה אמנותית בצד -->
+            <div class="col-span-12 lg:col-span-4 hidden lg:flex justify-center">
+
+                <div class="relative rounded-2xl overflow-hidden shadow-[0_20px_45px_rgba(0,0,0,0.35),inset_0_0_0_1px_rgba(255,255,255,0.4)] group max-w-xs w-full bg-[#fdfbf9]/90 backdrop-blur-md p-3 border border-white/30">
+
+                    <div class="relative rounded-xl overflow-hidden">
+
+                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVxhdbmVVxJQe-cVPppwQ49f9gx38vGkcZOgvguc5RRPI6QJk1V14JoGS_mkrzTFv3QmolqPSfdntwfJwB81jrUKWlkIwMNJBOpUS0syv_0kelE-SJHMr7ziNYjHtFqmULH_EEbUghF_qU_fA69eLwp9zBu6OcwC2f0SlmjXeDuMGqle2g9iq0eknNFhSxYm0ivEUEHnYQGjP3IPWFZIL7GMdZqH_nXWJ1Dx0s8qx2S1yfZnv9a0DTc4klLdx95s6LcT8"
+                             alt="Roni Rose Bas-Relief Luxury Floral Craftsmanship"
+                             class="w-full h-auto object-cover transform duration-700 group-hover:scale-105">
+
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+
+                    </div>
+
+                    <div class="pt-3 text-center">
+                        <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-secondary">
+                            HAUTE FLORAL ATELIER
+                        </span>
+
+                        <p class="text-[12px] text-on-surface-variant mt-0.5">
+                            חותם יוקרה ואמנות בעבודת יד
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ==================== CATALOG INTRODUCTION ==================== -->
+<section class="max-w-7xl mx-auto px-4 sm:px-8 w-full py-10 sm:py-14">
+
+    <div class="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+
+        <span class="font-label-sm text-secondary tracking-[0.2em] uppercase font-semibold text-[11px] sm:text-[12px]">
+            קולקציית חותם מובחרת
+        </span>
+
+        <h2 class="font-headline-lg text-[28px] sm:text-[34px] text-on-surface mt-1">
+            הזרים הנבחרים שלנו
+        </h2>
+
+        <p class="font-body-md text-on-surface-variant mt-2 text-[13px] sm:text-[14px]">
+            שזירה אמנותית עשירה בהתאמה אישית • הזמנה ישירה ומאובטחת דרך האתר
+        </p>
+
+        <div class="w-12 h-0.5 bg-primary/30 mx-auto mt-4 rounded-full"></div>
+
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+
+        <!-- כרטיס מוצר 1 -->
+        <article class="rounded-2xl bg-surface-container-lowest border border-[#eee2d6] overflow-hidden shadow-[0_6px_20px_rgba(74,66,56,0.06)] hover:shadow-[0_12px_32px_rgba(74,66,56,0.12)] transition-all duration-300 flex flex-col group">
+
+            <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1UO7bo_Yp30qHgs-mdEDFPHL_qwJG3NF7H4OOEMp8PJTTo-Vw1CNulqXVJ9aStGmiDRBdQWMpbsmVVkTyJdD_cfU_j1uIDmRkZG6b4dYpqJoD4D8NU-j_a_CPFKaGpUjKZXte2V46zZUUqv4Hvp6k93DS202nDveqeWw37DJqPdAqJoiLaWqzpBKDWUrrgAdQ1OQBw58wqpfqDhMHwZpgnvdofDAHoWbIUh1xHPuAG4Ozo8DyF0KvUIze_J"
+                     alt="זר פריזאי קלאסי"
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+
+                <div class="absolute top-3.5 right-3.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-primary font-label-sm text-[12px] shadow-sm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                    <span>הנמכר ביותר</span>
+                </div>
+
+            </div>
+
+            <div class="p-5 sm:p-6 flex flex-col flex-1 text-right">
+
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3 class="font-headline-sm text-[18px] sm:text-[20px] text-on-surface">
+                        זר פריזאי קלאסי
+                    </h3>
+
+                    <span class="font-headline-sm text-[20px] sm:text-[22px] text-primary font-semibold">
+                        ₪360
+                    </span>
+                </div>
+
+                <p class="font-body-sm text-on-surface-variant mb-6 leading-relaxed flex-1 text-[13px] sm:text-[14px]">
+                    שושנים צחורות, אדמוניות לבנות, ורדי גינה בניחוח עדין וענפי אקליפטוס כסוף עטופים בנייר כותנה יוקרתי.
+                </p>
+
+                <div class="pt-4 border-t border-[#f2e7dc] flex items-center justify-between">
+
+                    <span class="text-[12px] text-on-surface-variant flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-secondary-fixed"></span>
+                        <span>כולל אריזה וכרטיס ברכה</span>
+                    </span>
+
+                    <button type="button"
+                            @onclick="GoToShop"
+                            class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-primary text-white font-label-md text-[12px] sm:text-[13px] hover:bg-primary-container transition-colors flex items-center gap-1.5 active:scale-95">
+
+                        <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
+                        <span>לצפייה בחנות</span>
+
+                    </button>
+
+                </div>
+            </div>
+        </article>
+
+        <!-- כרטיס מוצר 2 -->
+        <article class="rounded-2xl bg-surface-container-lowest border border-[#eee2d6] overflow-hidden shadow-[0_6px_20px_rgba(74,66,56,0.06)] hover:shadow-[0_12px_32px_rgba(74,66,56,0.12)] transition-all duration-300 flex flex-col group">
+
+            <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1Ws08eykkvMqYqOv9hpqfihfUKLAuziOf8CK1alPXogWw8375-Ilpj26_LLu7KtpbtCFIIt6LMJcFZNWQE2GovwPyjqwXyCynX6In-lNRwKfdM6hQoie2d3tJq4KP1DlWT3zikp79y67zkKLCNBqVLnpc1527fJz3hwcYmQj7y3ZK6MLJu2qZVvjzI8UmuvkLyefKTIKHl6uyFiCnQJ_5FJC_LvK082KrpPLQC2sLBD6za3z20K3oALQhOy"
+                     alt="זר כלה בוהו-שיק"
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+
+                <div class="absolute top-3.5 right-3.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-secondary font-label-sm text-[12px] shadow-sm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">diamond</span>
+                    <span>קולקציית חתונות</span>
+                </div>
+
+            </div>
+
+            <div class="p-5 sm:p-6 flex flex-col flex-1 text-right">
+
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3 class="font-headline-sm text-[18px] sm:text-[20px] text-on-surface">
+                        זר כלה בוהו-שיק
+                    </h3>
+
+                    <span class="font-headline-sm text-[20px] sm:text-[22px] text-primary font-semibold">
+                        ₪420
+                    </span>
+                </div>
+
+                <p class="font-body-sm text-on-surface-variant mb-6 leading-relaxed flex-1 text-[13px] sm:text-[14px]">
+                    הידראנג'אה צחורה, ליזיאנטוס עדין, ורדי שמפניה נדירים וסרטי משי נשפכים בעבודת יד מוקפדת.
+                </p>
+
+                <div class="pt-4 border-t border-[#f2e7dc] flex items-center justify-between">
+
+                    <span class="text-[12px] text-on-surface-variant flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-primary-fixed-dim"></span>
+                        <span>התאמה מלאה למעמד</span>
+                    </span>
+
+                    <button type="button"
+                            @onclick="GoToShop"
+                            class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-primary text-white font-label-md text-[12px] sm:text-[13px] hover:bg-primary-container transition-colors flex items-center gap-1.5 active:scale-95">
+
+                        <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
+                        <span>לצפייה בחנות</span>
+
+                    </button>
+
+                </div>
+            </div>
+        </article>
+
+        <!-- כרטיס מוצר 3 -->
+        <article class="rounded-2xl bg-surface-container-lowest border border-[#eee2d6] overflow-hidden shadow-[0_6px_20px_rgba(74,66,56,0.06)] hover:shadow-[0_12px_32px_rgba(74,66,56,0.12)] transition-all duration-300 flex flex-col group">
+
+            <div class="relative aspect-[4/3] overflow-hidden bg-surface-container-low">
+
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1WNSkxQGfDxAsmDG3USG2VX5X762vMxLyLp1vz9Ybs1lCFFmfcH7QPgMurbhoPPpVgU5jKnvvl77iIw9OQOD9-wezcO5Tuao9qBv8vn5_97pqNYqCm_5Uy68pcO2sfXW1fa5mmyNENhRGV61JvnxB-aOv2ogcB_ZiuL3owUdh2bJbVv7DT-FkpyAyiYnUbfDQvPMewj_ZqKKInW6oW9HYAgsI_qhNWVuIIAom4ItnDykOH7DCzh7zt8fvOC"
+                     alt="סידור אגרטל רומנטי"
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+
+                <div class="absolute top-3.5 right-3.5 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-tertiary font-label-sm text-[12px] shadow-sm flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">nest_eco_leaf</span>
+                    <span>מהדורה עונתית</span>
+                </div>
+
+            </div>
+
+            <div class="p-5 sm:p-6 flex flex-col flex-1 text-right">
+
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3 class="font-headline-sm text-[18px] sm:text-[20px] text-on-surface">
+                        סידור אגרטל רומנטי
+                    </h3>
+
+                    <span class="font-headline-sm text-[20px] sm:text-[22px] text-primary font-semibold">
+                        ₪310
+                    </span>
+                </div>
+
+                <p class="font-body-sm text-on-surface-variant mb-6 leading-relaxed flex-1 text-[13px] sm:text-[14px]">
+                    נוריות בשלל גוונים, ורדים אנגליים ובוטניקה יבשה מעוצבים בתוך כלי קרמיקה ייחודי בעבודת יד.
+                </p>
+
+                <div class="pt-4 border-t border-[#f2e7dc] flex items-center justify-between">
+
+                    <span class="text-[12px] text-on-surface-variant flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+                        <span>כולל כלי קרמיקה ייעודי</span>
+                    </span>
+
+                    <button type="button"
+                            @onclick="GoToShop"
+                            class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-primary text-white font-label-md text-[12px] sm:text-[13px] hover:bg-primary-container transition-colors flex items-center gap-1.5 active:scale-95">
+
+                        <span class="material-symbols-outlined text-[16px]">shopping_bag</span>
+                        <span>לצפייה בחנות</span>
+
+                    </button>
+
+                </div>
+            </div>
+        </article>
+
+    </div>
+</section>
+
+@code {
+    private void GoToShop()
+    {
+        Navigation.NavigateTo("/bouquets");
+    }
+
+    private void GoToAbout()
+    {
+        Navigation.NavigateTo("/about");
+    }
+}

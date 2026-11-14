@@ -4,3 +4,59 @@ GET {{API_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+# ===== Users =====
+
+# כל המשתמשים
+GET {{EmetGuard_HostAddress}}/api/users
+Accept: application/json
+
+###
+
+# משתמש לפי מזהה
+GET {{EmetGuard_HostAddress}}/api/users/1
+Accept: application/json
+
+###
+
+# האם שם משתמש קיים (צפוי: true)
+GET {{EmetGuard_HostAddress}}/api/users/exists/admin
+
+###
+
+# האם שם משתמש קיים (צפוי: true)
+GET {{EmetGuard_HostAddress}}/api/users/exists/dana.cohen
+
+###
+
+# האם אימייל קיים (צפוי: true)
+GET {{EmetGuard_HostAddress}}/api/users/email-exists/admin@example.com
+
+###
+
+# ספירת משתמשים לפי תפקיד
+GET {{EmetGuard_HostAddress}}/api/users/count-by-role
+
+###
+
+# הוספת משתמש בדיקה (תפקיד ברירת מחדל: Student)
+POST {{EmetGuard_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "username": "test.user",
+  "email": "test.user@example.com",
+  "password": "Test123"
+}
+
+###
+
+# התחברות עם פרטים נכונים (צפוי: 200 והמשתמש)
+POST {{EmetGuard_HostAddress}}/api/users/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin123"
+}
+
+###

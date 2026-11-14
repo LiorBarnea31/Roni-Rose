@@ -1,0 +1,43 @@
+﻿@page "/customer"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using View.Services
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>עמוד לקוח | Roni Rose</PageTitle>
+
+<div class="min-h-screen flex items-center justify-center">
+    @if (isLoading)
+    {
+        <div class="text-center py-20">
+            <p class="text-on-surface-variant">טוען את עמוד הלקוח...</p>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!Session.IsLoggedIn)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (Session.RoleName != "Customer")
+            {
+                Navigation.NavigateTo("/no-permission");
+                return;
+            }
+
+            Navigation.NavigateTo("/");
+        }
+
+        await Task.CompletedTask;
+    }
+}

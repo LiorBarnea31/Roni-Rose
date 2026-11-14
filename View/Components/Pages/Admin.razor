@@ -1,0 +1,480 @@
+﻿@page "/admin"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using View.Services
+@using View.Components.Shared
+@using Model
+@using System.Net.Http.Json
+
+@inject UserSession Session
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+<PageTitle>ניהול האתר · Roni Rose</PageTitle>
+
+@if (Session.IsLoggedIn && string.Equals(Session.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="w-full">
+
+        <PageHeader Title="מרכז הניהול"
+                    Subtitle="ADMINISTRATION"
+                    Description="ברוך הבא למערכת הניהול של Roni Rose. כאן ניתן לצפות בפעילות הבוטיק ולנהל את האתר." />
+
+        <div class="grid grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)] gap-6 items-start">
+
+            <aside class="bg-white border border-[#eee2d6] rounded-2xl p-4 shadow-sm">
+
+                <p class="text-xs text-secondary font-semibold tracking-widest mb-4 px-3">
+                    תפריט ניהול
+                </p>
+
+                <nav class="flex flex-col gap-1">
+
+                    <NavLink href="/admin" Match="NavLinkMatch.All" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span class="text-sm">ראשי</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/users" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">group</span>
+                        <span class="text-sm">ניהול משתמשים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/products" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">local_florist</span>
+                        <span class="text-sm">ניהול מוצרים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/orders" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <span class="text-sm">ניהול הזמנות</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/reports" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        <span class="text-sm">דוחות ונתונים</span>
+                    </NavLink>
+
+                </nav>
+
+                <div class="border-t border-[#eee2d6] my-4"></div>
+
+                <p class="text-xs text-secondary font-semibold tracking-widest mb-3 px-3">
+                    חשבון
+                </p>
+
+                <button type="button"
+                        class="rr-dashboard-link w-full text-right"
+                        @onclick="Logout">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="text-sm">התנתקות</span>
+                </button>
+
+            </aside>
+
+            <div class="min-w-0 space-y-7">
+
+                <div class="rounded-2xl p-6 sm:p-8 text-white shadow-sm"
+                     style="background: linear-gradient(115deg, #8a4a3d, #a76253);">
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <p class="text-white/75 text-xs tracking-widest mb-2">
+                                RONI ROSE MANAGEMENT
+                            </p>
+
+                            <h2 class="font-headline-md text-2xl sm:text-3xl mb-2">
+                                שלום, רוני
+                            </h2>
+
+                            <p class="text-sm text-white/85">
+                                כל מה שקורה בבוטיק שלך, במקום אחד.
+                            </p>
+
+                            <button type="button"
+                                    @onclick="GoToUsers"
+                                    class="mt-5 inline-flex items-center gap-2 bg-white text-[#8a4a3d] px-5 py-3 rounded-xl font-semibold text-sm shadow-md hover:bg-[#fff1e3] transition-all active:scale-95">
+                                <span class="material-symbols-outlined">group</span>
+                                ניהול משתמשים
+                                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                            </button>
+                        </div>
+
+                        <div class="hidden sm:flex w-16 h-16 rounded-2xl bg-white/15 items-center justify-center">
+                            <span class="material-symbols-outlined text-4xl">
+                                local_florist
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <section>
+                    <h2 class="rr-section-title">תמונת מצב</h2>
+
+                    @if (isLoading)
+                    {
+                        <p class="text-sm text-on-surface-variant">
+                            טוען נתונים ממסד הנתונים...
+                        </p>
+                    }
+                    else if (!string.IsNullOrEmpty(loadError))
+                    {
+                        <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                            <p class="font-semibold mb-2">שגיאה בטעינת הנתונים</p>
+                            <p class="text-sm break-words">@loadError</p>
+
+                            <button type="button"
+                                    @onclick="LoadDashboardData"
+                                    class="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 rounded-lg text-sm font-semibold">
+                                נסה שוב
+                            </button>
+                        </div>
+                    }
+                    else if (dashboardData != null)
+                    {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                            <DashboardCard Title="משתמשים רשומים"
+                                           Value="@dashboardData.TotalUsers.ToString("N0")"
+                                           Icon="group"
+                                           Description="סך המשתמשים באתר" />
+
+                            <DashboardCard Title="הזמנות החודש"
+                                           Value="@dashboardData.MonthlyOrders.ToString("N0")"
+                                           Icon="shopping_bag"
+                                           Description="הזמנות שנוצרו החודש" />
+
+                            <DashboardCard Title="הכנסות החודש"
+                                           Value="@($"₪{dashboardData.MonthlyRevenue:N2}")"
+                                           Icon="payments"
+                                           Description="סך ההכנסות החודש" />
+
+                            <DashboardCard Title="ממתינות לטיפול"
+                                           Value="@dashboardData.PendingOrders.ToString("N0")"
+                                           Icon="pending_actions"
+                                           Description="הזמנות שעדיין לא הושלמו" />
+
+                        </div>
+                    }
+                </section>
+
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <div class="flex items-center justify-between gap-3 mb-6">
+                        <div>
+                            <h2 class="rr-section-title !mb-1">
+                                פעילות שבועית
+                            </h2>
+                            <p class="text-xs text-on-surface-variant">
+                                מספר הזמנות במהלך שבעת הימים האחרונים
+                            </p>
+                        </div>
+
+                        <span class="material-symbols-outlined text-primary text-2xl">
+                            monitoring
+                        </span>
+                    </div>
+
+                    @if (isLoading)
+                    {
+                        <p class="text-sm text-on-surface-variant">
+                            טוען נתונים...
+                        </p>
+                    }
+                    else if (dashboardData != null)
+                    {
+                        <div class="flex items-end justify-between gap-3 h-48 px-2">
+
+                            @foreach (var day in dashboardData.WeeklyActivity)
+                            {
+                                <div class="flex-1 flex flex-col items-center justify-end h-full gap-2">
+
+                                    <span class="text-xs text-on-surface-variant">
+                                        @day.OrderCount
+                                    </span>
+
+                                    <div class="w-full max-w-12 rounded-t-lg bg-[#8a4a3d]"
+                                         style="height: @(Math.Max(5, day.OrderCount * 100.0 / WeeklyMax))%;">
+                                    </div>
+
+                                    <span class="text-xs text-on-surface-variant">
+                                        @day.DayName
+                                    </span>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </section>
+
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <div class="flex items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h2 class="rr-section-title !mb-1">
+                                הזמנות אחרונות
+                            </h2>
+                            <p class="text-xs text-on-surface-variant">
+                                סקירה של ההזמנות האחרונות באתר
+                            </p>
+                        </div>
+
+                        <NavLink href="/admin/orders"
+                                 class="text-xs font-semibold text-primary hover:underline whitespace-nowrap">
+                            לכל ההזמנות
+                        </NavLink>
+                    </div>
+
+                    <div class="rr-table-wrapper">
+                        <table class="rr-dashboard-table">
+                            <thead>
+                                <tr>
+                                    <th>מספר הזמנה</th>
+                                    <th>שם לקוח</th>
+                                    <th>תאריך</th>
+                                    <th>סכום</th>
+                                    <th>סטטוס</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @if (isLoading)
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-6">
+                                            טוען הזמנות...
+                                        </td>
+                                    </tr>
+                                }
+                                else if (dashboardData != null && dashboardData.RecentOrders.Count > 0)
+                                {
+                                    @foreach (var order in dashboardData.RecentOrders)
+                                    {
+                                        <tr>
+                                            <td>#RR-@order.OrderID</td>
+                                            <td>@order.FullName</td>
+                                            <td>
+                                                @(order.OrderDate == DateTime.MinValue
+                                                    ? "-"
+                                                    : order.OrderDate.ToString("dd.MM.yyyy"))
+                                            </td>
+                                            <td>₪@order.TotalPrice.ToString("N2")</td>
+                                            <td>
+                                                <span class="rr-status @GetStatusClass(order.Status)">
+                                                    @GetStatusText(order.Status)
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-6">
+                                            עדיין אין הזמנות להצגה
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <h2 class="rr-section-title">פעילות אחרונה באתר</h2>
+
+                    <div class="space-y-5">
+
+                        <div class="flex items-start gap-3">
+                            <div class="rr-dashboard-icon shrink-0">
+                                <span class="material-symbols-outlined">person_add</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-on-surface font-semibold">
+                                    משתמש חדש נרשם לאתר
+                                </p>
+                                <p class="text-xs text-on-surface-variant mt-1">
+                                    דנה כהן הצטרפה למועדון הלקוחות
+                                </p>
+                                <p class="text-[11px] text-secondary mt-2">
+                                    לפני 15 דקות
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="rr-dashboard-icon shrink-0">
+                                <span class="material-symbols-outlined">shopping_bag</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-on-surface font-semibold">
+                                    התקבלה הזמנה חדשה
+                                </p>
+                                <p class="text-xs text-on-surface-variant mt-1">
+                                    הזמנה לדוגמה בסך ₪350
+                                </p>
+                                <p class="text-[11px] text-secondary mt-2">
+                                    לפני 40 דקות
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="rr-dashboard-icon shrink-0">
+                                <span class="material-symbols-outlined">local_florist</span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-on-surface font-semibold">
+                                    מוצר חדש נוסף לקטלוג
+                                </p>
+                                <p class="text-xs text-on-surface-variant mt-1">
+                                    זר ורדים לבנים נוסף לחנות
+                                </p>
+                                <p class="text-[11px] text-secondary mt-2">
+                                    לפני שעתיים
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-5xl text-primary mb-3">
+            lock
+        </span>
+        <p class="text-on-surface-variant">
+            בודק הרשאות...
+        </p>
+    </div>
+}
+
+@code {
+    private AdminDashboardData? dashboardData;
+
+    private bool isLoading = true;
+
+    private string loadError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(
+            Session.RoleName,
+            "Admin",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/no-permission");
+            return;
+        }
+
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+            loadError = string.Empty;
+
+            dashboardData = await Http.GetFromJsonAsync<AdminDashboardData>(
+                "api/admindashboard"
+            );
+
+            if (dashboardData == null)
+            {
+                loadError = "לא התקבלו נתונים מהשרת.";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            loadError = "שגיאת תקשורת עם השרת: " + ex.Message;
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            loadError = "שגיאה בקריאת הנתונים שהתקבלו מהשרת: " + ex.Message;
+        }
+        catch (Exception ex)
+        {
+            loadError = "שגיאה: " + ex.GetBaseException().Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private int WeeklyMax
+    {
+        get
+        {
+            if (dashboardData == null || dashboardData.WeeklyActivity.Count == 0)
+                return 1;
+
+            int max = 1;
+
+            foreach (var day in dashboardData.WeeklyActivity)
+            {
+                if (day.OrderCount > max)
+                {
+                    max = day.OrderCount;
+                }
+            }
+
+            return max;
+        }
+    }
+
+    private string GetStatusClass(string status)
+    {
+        if (string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
+            return "rr-status-completed";
+
+        if (string.Equals(status, "Processing", StringComparison.OrdinalIgnoreCase))
+            return "rr-status-processing";
+
+        return "rr-status-pending";
+    }
+
+    private string GetStatusText(string status)
+    {
+        if (string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
+            return "הושלמה";
+
+        if (string.Equals(status, "Processing", StringComparison.OrdinalIgnoreCase))
+            return "בטיפול";
+
+        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+            return "ממתינה";
+
+        return status;
+    }
+
+    private void GoToUsers()
+    {
+        Navigation.NavigateTo("/admin/users", forceLoad: false);
+    }
+
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

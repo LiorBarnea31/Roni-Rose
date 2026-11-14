@@ -1,0 +1,288 @@
+﻿
+@page "/cart"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@implements IDisposable
+
+@using View.Services
+
+@inject ShoppingCartService CartState
+@inject NavigationManager Navigation
+
+<PageTitle>סל הקניות | Roni Rose</PageTitle>
+
+<div class="max-w-6xl mx-auto px-5 py-12 text-right" dir="rtl">
+
+    <div class="text-center mb-12">
+        <p class="text-xs tracking-[0.3em] text-secondary mb-4">
+            YOUR SHOPPING BAG
+        </p>
+
+        <h1 class="text-4xl text-on-surface mb-4">
+            סל הקניות שלי
+        </h1>
+
+        <p class="text-on-surface-variant">
+            הזרים שבחרתם, מוכנים להגיע אליכם באהבה.
+        </p>
+
+        <div class="w-20 h-0.5 bg-primary mx-auto mt-7"></div>
+    </div>
+
+    @if (CartState.GetItems().Count == 0)
+    {
+        <div class="text-center py-16">
+            <span class="material-symbols-outlined text-6xl text-primary">
+                shopping_bag
+            </span>
+
+            <h2 class="text-2xl mt-5 mb-3">
+                סל הקניות שלך ריק
+            </h2>
+
+            <p class="text-on-surface-variant mb-8">
+                עדיין לא בחרתם זר מהקולקציה שלנו.
+            </p>
+
+            <button @onclick="GoToShop"
+                    class="bg-primary text-white px-8 py-4 rounded-full">
+                מעבר לחנות
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <div class="lg:col-span-2 space-y-5">
+
+                <h2 class="text-2xl border-b border-[#e8ded4] pb-4">
+                    המוצרים שבחרתם
+                </h2>
+
+                @foreach (var item in CartState.GetItems())
+                {
+                    <div @key="item.Product.ProductID"
+                         class="bg-[#fdfbf9] border border-[#eee5dc] rounded-2xl p-5 flex flex-col sm:flex-row gap-5">
+
+                        <div class="w-full sm:w-36 h-36 rounded-xl overflow-hidden bg-[#f4ece4] shrink-0">
+
+                            @if (!string.IsNullOrWhiteSpace(item.Product.ImageUrl))
+                            {
+                                <img src="@item.Product.ImageUrl"
+                                     alt="@item.Product.ProductName"
+                                     class="w-full h-full object-cover" />
+                            }
+                            else if (item.Product.ProductImageBlob != null &&
+                                     item.Product.ProductImageBlob.Length > 0)
+                            {
+                                <img src="@GetBlobImage(item.Product.ProductImageBlob)"
+                                     alt="@item.Product.ProductName"
+                                     class="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-5xl text-primary">
+                                        local_florist
+                                    </span>
+                                </div>
+                            }
+
+                        </div>
+
+                        <div class="flex-1 flex flex-col justify-between gap-4">
+
+                            <div>
+                                <h3 class="text-xl font-semibold mb-2">
+                                    @item.Product.ProductName
+                                </h3>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Product.Description))
+                                {
+                                    <p class="text-sm text-on-surface-variant">
+                                        @item.Product.Description
+                                    </p>
+                                }
+                            </div>
+
+                            <div class="flex flex-wrap justify-between items-center gap-4">
+
+                                <div class="flex items-center gap-4 border rounded-full px-3 py-2">
+
+                                    <button type="button"
+                                            @onclick="() => Decrease(item.Product.ProductID)">
+                                        <span class="material-symbols-outlined">remove</span>
+                                    </button>
+
+                                    <span class="font-semibold">
+                                        @item.Quantity
+                                    </span>
+
+                                    <button type="button"
+                                            @onclick="() => Increase(item.Product.ProductID)">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
+
+                                </div>
+
+                                <div>
+                                    <p class="text-xs text-on-surface-variant">
+                                        מחיר כולל
+                                    </p>
+
+                                    <p class="text-xl font-semibold text-primary">
+                                        ₪@((item.Product.Price * item.Quantity).ToString("N2"))
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            <div class="flex justify-between items-center border-t pt-3">
+
+                                <span class="text-xs text-on-surface-variant">
+                                    ₪@item.Product.Price.ToString("N2") ליחידה
+                                </span>
+
+                                <button type="button"
+                                        @onclick="() => Remove(item.Product.ProductID)"
+                                        class="text-sm text-red-700 flex items-center gap-1">
+
+                                    <span class="material-symbols-outlined">
+                                        delete
+                                    </span>
+
+                                    הסר מהסל
+                                </button>
+
+                            </div>
+
+                        </div>
+                    </div>
+                }
+
+                <button @onclick="GoToShop"
+                        class="text-primary flex items-center gap-2 py-4">
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                    המשך בקניות
+                </button>
+
+            </div>
+
+            <div>
+                <div class="bg-[#fdfbf9] border border-[#eee5dc] rounded-2xl p-6 sticky top-28">
+
+                    <h2 class="text-2xl mb-6">
+                        סיכום הזמנה
+                    </h2>
+
+                    <div class="space-y-4 border-b pb-5">
+
+                        <div class="flex justify-between">
+                            <span class="text-on-surface-variant">
+                                כמות מוצרים
+                            </span>
+
+                            <span>@CartState.TotalQuantity()</span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="text-on-surface-variant">
+                                סך המוצרים
+                            </span>
+
+                            <span>₪@CartState.TotalPrice().ToString("N2")</span>
+                        </div>
+
+                        <div class="flex justify-between">
+                            <span class="text-on-surface-variant">
+                                משלוח
+                            </span>
+
+                            <span class="text-sm text-on-surface-variant">
+                                יחושב בהמשך
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <div class="flex justify-between items-center py-6">
+                        <span class="text-lg font-semibold">
+                            סך הכול
+                        </span>
+
+                        <span class="text-2xl text-primary font-semibold">
+                            ₪@CartState.TotalPrice().ToString("N2")
+                        </span>
+                    </div>
+
+                    <button @onclick="ContinueToCheckout"
+                            class="w-full bg-primary text-white py-4 rounded-full">
+                        המשך להזמנה
+                    </button>
+
+                    @if (showCheckoutMessage)
+                    {
+                        <p class="text-sm text-center text-secondary mt-4">
+                            שלב ביצוע ההזמנה יתווסף בהמשך.
+                        </p>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+    }
+
+</div>
+
+@code {
+    private bool showCheckoutMessage = false;
+
+    protected override void OnInitialized()
+    {
+        CartState.OnCartChanged += HandleCartChanged;
+    }
+
+    private void HandleCartChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void Increase(int productID)
+    {
+        CartState.IncreaseQuantity(productID);
+        showCheckoutMessage = false;
+    }
+
+    private void Decrease(int productID)
+    {
+        CartState.DecreaseQuantity(productID);
+        showCheckoutMessage = false;
+    }
+
+    private void Remove(int productID)
+    {
+        CartState.RemoveProduct(productID);
+        showCheckoutMessage = false;
+    }
+
+    private void GoToShop()
+    {
+        Navigation.NavigateTo("/bouquets");
+    }
+
+    private void ContinueToCheckout()
+    {
+        showCheckoutMessage = true;
+    }
+
+    private string GetBlobImage(byte[] image)
+    {
+        return "data:image/jpeg;base64," + Convert.ToBase64String(image);
+    }
+
+    public void Dispose()
+    {
+        CartState.OnCartChanged -= HandleCartChanged;
+    }
+}

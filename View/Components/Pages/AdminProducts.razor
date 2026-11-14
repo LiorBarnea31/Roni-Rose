@@ -1,0 +1,841 @@
+﻿@page "/admin/products"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using View.Services
+@using View.Components.Shared
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using Model
+
+@inject UserSession Session
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>ניהול מוצרים · Roni Rose</PageTitle>
+
+@if (Session.IsLoggedIn && string.Equals(Session.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="w-full">
+
+        <PageHeader Title="ניהול מוצרים"
+                    Subtitle="PRODUCT MANAGEMENT"
+                    Description="ניהול קטלוג המוצרים של Roni Rose, הוספת זרים, רכבי חתונה ועדכון פרטי המוצרים." />
+
+        <div class="grid grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)] gap-6 items-start">
+
+            @* סרגל ניווט *@
+            <aside class="bg-white border border-[#eee2d6] rounded-2xl p-4 shadow-sm">
+
+                <p class="text-xs text-secondary font-semibold tracking-widest mb-4 px-3">
+                    תפריט ניהול
+                </p>
+
+                <nav class="flex flex-col gap-1">
+
+                    <NavLink href="/admin" Match="NavLinkMatch.All" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span class="text-sm">ראשי</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/users" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">group</span>
+                        <span class="text-sm">ניהול משתמשים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/products" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">local_florist</span>
+                        <span class="text-sm">ניהול מוצרים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/orders" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <span class="text-sm">ניהול הזמנות</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/reports" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        <span class="text-sm">דוחות ונתונים</span>
+                    </NavLink>
+
+                </nav>
+
+                <div class="border-t border-[#eee2d6] my-4"></div>
+
+                <button type="button"
+                        class="rr-dashboard-link w-full text-right"
+                        @onclick="Logout">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="text-sm">התנתקות</span>
+                </button>
+
+            </aside>
+
+            @* תוכן מרכזי *@
+            <div class="min-w-0 space-y-7">
+
+                @* כותרת ופעולות *@
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+                    <div>
+                        <h2 class="text-xl font-semibold text-on-surface">
+                            המוצרים באתר
+                        </h2>
+
+                        <p class="text-xs text-on-surface-variant mt-1">
+                            הוספה, עריכה ומחיקה של מוצרים בקטלוג
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+
+                        <button type="button"
+                                @onclick="LoadProducts"
+                                disabled="@isLoading"
+                                class="inline-flex items-center justify-center gap-2 border border-[#eee2d6] bg-white text-on-surface rounded-xl px-4 py-3 text-sm hover:bg-[#fff8f3] transition disabled:opacity-50">
+                            <span class="material-symbols-outlined text-lg">refresh</span>
+                            רענון
+                        </button>
+
+                        <button type="button"
+                                @onclick="StartAddProduct"
+                                class="inline-flex items-center justify-center gap-2 bg-primary text-white rounded-xl px-5 py-3 text-sm hover:opacity-90 transition">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            הוספת מוצר
+                        </button>
+
+                    </div>
+
+                </div>
+
+                @* הודעות *@
+                @if (isLoading)
+                {
+                    <div class="bg-white border border-[#eee2d6] rounded-2xl p-6 text-center">
+                        <p class="text-sm text-on-surface-variant">
+                            טוען מוצרים ממסד הנתונים...
+                        </p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(loadError))
+                {
+                    <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+                        <p class="text-sm text-red-700">@loadError</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="bg-green-50 border border-green-200 rounded-2xl p-4">
+                        <p class="text-sm text-green-700">@successMessage</p>
+                    </div>
+                }
+
+                @* כרטיסי סיכום *@
+                <section>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                        <div class="bg-white border border-[#eee2d6] rounded-2xl p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-on-surface-variant">סך המוצרים</span>
+                                <span class="material-symbols-outlined text-primary text-2xl">inventory_2</span>
+                            </div>
+                            <p class="text-3xl font-semibold text-on-surface mt-3">
+                                @products.Count
+                            </p>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                מוצרים בקטלוג
+                            </p>
+                        </div>
+
+                        <div class="bg-white border border-[#eee2d6] rounded-2xl p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-on-surface-variant">זרי פרחים</span>
+                                <span class="material-symbols-outlined text-primary text-2xl">local_florist</span>
+                            </div>
+                            <p class="text-3xl font-semibold text-on-surface mt-3">
+                                @products.Count(p => p.CategoryID == 1)
+                            </p>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                מוצרים בקטגוריה
+                            </p>
+                        </div>
+
+                        <div class="bg-white border border-[#eee2d6] rounded-2xl p-5 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-on-surface-variant">רכבי חתונה</span>
+                                <span class="material-symbols-outlined text-primary text-2xl">directions_car</span>
+                            </div>
+                            <p class="text-3xl font-semibold text-on-surface mt-3">
+                                @products.Count(p => p.CategoryID == 2)
+                            </p>
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                מוצרים בקטגוריה
+                            </p>
+                        </div>
+
+                    </div>
+                </section>
+
+                @* טופס הוספה ועריכה *@
+                @if (showForm)
+                {
+                    <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                        <div class="flex items-center justify-between gap-3 mb-6">
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-on-surface">
+                                    @(isEditing ? "עריכת מוצר" : "הוספת מוצר חדש")
+                                </h3>
+
+                                <p class="text-xs text-on-surface-variant mt-1">
+                                    מלא את פרטי המוצר והשינויים יישמרו במסד הנתונים
+                                </p>
+                            </div>
+
+                            <button type="button"
+                                    @onclick="CancelForm"
+                                    class="text-on-surface-variant hover:text-red-500">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                            @* שם המוצר *@
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-2">
+                                    שם המוצר *
+                                </label>
+
+                                <input type="text"
+                                       @bind="formProduct.ProductName"
+                                       placeholder="לדוגמה: זר ורדים לבנים"
+                                       class="w-full border border-[#eee2d6] rounded-xl p-3 text-sm bg-[#fffdfa] focus:outline-none focus:border-primary" />
+                            </div>
+
+                            @* מחיר *@
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-2">
+                                    מחיר (₪) *
+                                </label>
+
+                                <input type="number"
+                                       min="0.01"
+                                       step="0.01"
+                                       @bind="formProduct.Price"
+                                       class="w-full border border-[#eee2d6] rounded-xl p-3 text-sm bg-[#fffdfa] focus:outline-none focus:border-primary" />
+                            </div>
+
+                            @* קטגוריה *@
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-2">
+                                    קטגוריה *
+                                </label>
+
+                                <select @bind="formProduct.CategoryID"
+                                        class="w-full border border-[#eee2d6] rounded-xl p-3 text-sm bg-[#fffdfa] focus:outline-none focus:border-primary">
+
+                                    <option value="0">בחר קטגוריה</option>
+                                    <option value="1">זרי פרחים</option>
+                                    <option value="2">רכבי חתונה</option>
+
+                                </select>
+                            </div>
+
+                            @* תמונה *@
+                            <div>
+                                <label class="block text-sm font-medium text-on-surface mb-2">
+                                    תמונת המוצר
+                                </label>
+
+                                <InputFile OnChange="OnImageSelected"
+                                           accept="image/png,image/jpeg,image/webp"
+                                           class="w-full text-sm border border-[#eee2d6] rounded-xl p-2 bg-[#fffdfa]" />
+
+                                <p class="text-xs text-on-surface-variant mt-2">
+                                    ניתן להעלות JPG, PNG או WEBP עד 5MB
+                                </p>
+                            </div>
+
+                            @* תיאור *@
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-on-surface mb-2">
+                                    תיאור המוצר
+                                </label>
+
+                                <textarea @bind="formProduct.Description"
+                                          rows="4"
+                                          placeholder="כתוב תיאור קצר על המוצר..."
+                                          class="w-full border border-[#eee2d6] rounded-xl p-3 text-sm bg-[#fffdfa] focus:outline-none focus:border-primary resize-y"></textarea>
+                            </div>
+
+                        </div>
+
+                        @* תצוגה מקדימה *@
+                        @if (!string.IsNullOrEmpty(previewImage))
+                        {
+                            <div class="mt-5">
+                                <p class="text-sm font-medium text-on-surface mb-3">
+                                    תצוגה מקדימה
+                                </p>
+
+                                <div class="w-40 h-40 rounded-xl overflow-hidden border border-[#eee2d6] bg-[#fffdfa]">
+                                    <img src="@previewImage"
+                                         alt="תצוגת תמונת מוצר"
+                                         class="w-full h-full object-cover" />
+                                </div>
+
+                                <button type="button"
+                                        @onclick="RemoveImage"
+                                        class="text-xs text-red-500 hover:underline mt-2">
+                                    הסרת התמונה
+                                </button>
+                            </div>
+                        }
+
+                        @* פעולות טופס *@
+                        <div class="flex flex-wrap gap-3 mt-7 pt-5 border-t border-[#eee2d6]">
+
+                            <button type="button"
+                                    @onclick="SaveProduct"
+                                    disabled="@isSaving"
+                                    class="inline-flex items-center justify-center gap-2 bg-primary text-white rounded-xl px-6 py-3 text-sm hover:opacity-90 transition disabled:opacity-50">
+
+                                <span class="material-symbols-outlined text-lg">
+                                    @(isSaving ? "hourglass_empty" : "save")
+                                </span>
+
+                                @(isSaving ? "שומר..." : isEditing ? "שמירת שינויים" : "הוספת מוצר")
+                            </button>
+
+                            <button type="button"
+                                    @onclick="CancelForm"
+                                    disabled="@isSaving"
+                                    class="border border-[#eee2d6] rounded-xl px-6 py-3 text-sm text-on-surface hover:bg-[#fff8f3] transition">
+                                ביטול
+                            </button>
+
+                        </div>
+
+                    </section>
+                }
+
+                @* רשימת מוצרים *@
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <div class="flex items-center justify-between gap-3 mb-5">
+
+                        <div>
+                            <h3 class="text-lg font-semibold text-on-surface">
+                                רשימת המוצרים
+                            </h3>
+
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                כל המוצרים שנשמרו במסד הנתונים
+                            </p>
+                        </div>
+
+                        <span class="material-symbols-outlined text-primary text-2xl">
+                            inventory_2
+                        </span>
+
+                    </div>
+
+                    @if (!isLoading && products.Count == 0)
+                    {
+                        <div class="text-center py-12">
+                            <span class="material-symbols-outlined text-5xl text-primary">
+                                local_florist
+                            </span>
+
+                            <h4 class="text-lg font-semibold text-on-surface mt-3">
+                                עדיין אין מוצרים
+                            </h4>
+
+                            <p class="text-sm text-on-surface-variant mt-2">
+                                הוסף את המוצר הראשון שלך כדי להתחיל לבנות את הקטלוג.
+                            </p>
+
+                            <button type="button"
+                                    @onclick="StartAddProduct"
+                                    class="mt-5 bg-primary text-white rounded-xl px-5 py-3 text-sm hover:opacity-90">
+                                הוספת מוצר ראשון
+                            </button>
+                        </div>
+                    }
+                    else if (products.Count > 0)
+                    {
+                        <div class="rr-table-wrapper">
+
+                            <table class="rr-dashboard-table">
+
+                                <thead>
+                                    <tr>
+                                        <th>תמונה</th>
+                                        <th>שם המוצר</th>
+                                        <th>קטגוריה</th>
+                                        <th>מחיר</th>
+                                        <th>פעולות</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                    @foreach (var product in products)
+                                    {
+                                        <tr @key="product.ProductID">
+
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(GetImageSource(product)))
+                                                {
+                                                    <img src="@GetImageSource(product)"
+                                                         alt="@product.ProductName"
+                                                         class="w-14 h-14 rounded-xl object-cover border border-[#eee2d6]" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-14 h-14 rounded-xl bg-[#fff8f3] flex items-center justify-center">
+                                                        <span class="material-symbols-outlined text-primary">
+                                                            image
+                                                        </span>
+                                                    </div>
+                                                }
+                                            </td>
+
+                                            <td>
+                                                <div>
+                                                    <p class="font-semibold">
+                                                        @product.ProductName
+                                                    </p>
+
+                                                    <p class="text-xs text-on-surface-variant mt-1">
+                                                        @(string.IsNullOrWhiteSpace(product.Description)
+                                                            ? "ללא תיאור"
+                                                            : product.Description)
+                                                    </p>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <span class="rr-status rr-status-processing">
+                                                    @GetCategoryName(product.CategoryID)
+                                                </span>
+                                            </td>
+
+                                            <td class="font-semibold">
+                                                @product.Price.ToString("N2") ₪
+                                            </td>
+
+                                            <td>
+                                                <div class="flex items-center gap-3">
+
+                                                    <button type="button"
+                                                            @onclick="() => StartEditProduct(product)"
+                                                            class="text-primary hover:opacity-70"
+                                                            title="עריכת מוצר">
+                                                        <span class="material-symbols-outlined">
+                                                            edit
+                                                        </span>
+                                                    </button>
+
+                                                    <button type="button"
+                                                            @onclick="() => DeleteProduct(product)"
+                                                            disabled="@savingProductIds.Contains(product.ProductID)"
+                                                            class="text-red-500 hover:opacity-70 disabled:opacity-40"
+                                                            title="מחיקת מוצר">
+                                                        <span class="material-symbols-outlined">
+                                                            delete
+                                                        </span>
+                                                    </button>
+
+                                                </div>
+                                            </td>
+
+                                        </tr>
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+                    }
+
+                </section>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-5xl text-primary mb-3">
+            lock
+        </span>
+
+        <p class="text-on-surface-variant">
+            בודק הרשאות...
+        </p>
+    </div>
+}
+
+@code {
+
+    private List<Product> products = new List<Product>();
+
+    private HashSet<int> savingProductIds = new HashSet<int>();
+
+    private Product formProduct = new Product();
+
+    private bool showForm = false;
+    private bool isEditing = false;
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    private string loadError = string.Empty;
+    private string successMessage = string.Empty;
+    private string previewImage = string.Empty;
+
+    private const long MaxImageSize = 5 * 1024 * 1024;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(Session.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/no-permission");
+            return;
+        }
+
+        await LoadProducts();
+    }
+
+    // טעינת המוצרים
+    private async Task LoadProducts()
+    {
+        try
+        {
+            isLoading = true;
+            loadError = string.Empty;
+
+            List<Product>? result =
+                await Http.GetFromJsonAsync<List<Product>>("api/products");
+
+            products = result ?? new List<Product>();
+        }
+        catch (Exception ex)
+        {
+            loadError = "אירעה שגיאה בטעינת המוצרים: " +
+                        ex.GetBaseException().Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // פתיחת טופס הוספה
+    private void StartAddProduct()
+    {
+        formProduct = new Product();
+        formProduct.CategoryID = 1;
+
+        isEditing = false;
+        showForm = true;
+        previewImage = string.Empty;
+
+        loadError = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    // פתיחת טופס עריכה
+    private void StartEditProduct(Product product)
+    {
+        formProduct = new Product
+        {
+            ProductID = product.ProductID,
+            ProductName = product.ProductName,
+            Description = product.Description,
+            Price = product.Price,
+            ProductImageBlob = product.ProductImageBlob,
+            ImageUrl = product.ImageUrl,
+            CategoryID = product.CategoryID
+        };
+
+        previewImage = GetImageSource(product) ?? string.Empty;
+
+        isEditing = true;
+        showForm = true;
+
+        loadError = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    // בחירת תמונה
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IBrowserFile file = e.File;
+
+            if (file.Size > MaxImageSize)
+            {
+                loadError = "התמונה גדולה מדי. ניתן להעלות תמונה עד 5MB.";
+                return;
+            }
+
+            if (file.ContentType != "image/jpeg" &&
+                file.ContentType != "image/png" &&
+                file.ContentType != "image/webp")
+            {
+                loadError = "סוג הקובץ אינו נתמך. יש לבחור JPG, PNG או WEBP.";
+                return;
+            }
+
+            using MemoryStream memoryStream = new MemoryStream();
+
+            using Stream stream = file.OpenReadStream(MaxImageSize);
+
+            await stream.CopyToAsync(memoryStream);
+
+            formProduct.ProductImageBlob = memoryStream.ToArray();
+
+            // תמונה חדשה מחליפה כתובת תמונה ישנה
+            formProduct.ImageUrl = null;
+
+            previewImage = $"data:{file.ContentType};base64,{Convert.ToBase64String(formProduct.ProductImageBlob)}";
+
+            loadError = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            loadError = "לא ניתן לטעון את התמונה: " +
+                        ex.GetBaseException().Message;
+        }
+    }
+
+    // הסרת תמונה
+    private void RemoveImage()
+    {
+        formProduct.ProductImageBlob = null;
+        formProduct.ImageUrl = null;
+        previewImage = string.Empty;
+    }
+
+    // שמירת מוצר
+    private async Task SaveProduct()
+    {
+        if (string.IsNullOrWhiteSpace(formProduct.ProductName))
+        {
+            loadError = "יש להזין שם מוצר.";
+            return;
+        }
+
+        if (formProduct.Price <= 0)
+        {
+            loadError = "יש להזין מחיר גדול מאפס.";
+            return;
+        }
+
+        if (formProduct.CategoryID != 1 && formProduct.CategoryID != 2)
+        {
+            loadError = "יש לבחור קטגוריה.";
+            return;
+        }
+
+        try
+        {
+            isSaving = true;
+            loadError = string.Empty;
+            successMessage = string.Empty;
+
+            HttpResponseMessage response;
+
+            if (isEditing)
+            {
+                response = await Http.PutAsJsonAsync(
+                    $"api/products/{formProduct.ProductID}",
+                    formProduct
+                );
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync(
+                    "api/products",
+                    formProduct
+                );
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = isEditing
+                    ? "המוצר עודכן בהצלחה."
+                    : "המוצר נוסף בהצלחה.";
+
+                showForm = false;
+
+                await LoadProducts();
+            }
+            else
+            {
+                string error = await response.Content.ReadAsStringAsync();
+
+                loadError = "שמירת המוצר נכשלה: " + error;
+            }
+        }
+        catch (Exception ex)
+        {
+            loadError = "אירעה שגיאה בשמירת המוצר: " +
+                        ex.GetBaseException().Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    // מחיקת מוצר
+    private async Task DeleteProduct(Product product)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"האם אתה בטוח שברצונך למחוק את המוצר {product.ProductName}?"
+        );
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            savingProductIds.Add(product.ProductID);
+            loadError = string.Empty;
+            successMessage = string.Empty;
+
+            HttpResponseMessage response =
+                await Http.DeleteAsync($"api/products/{product.ProductID}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                products.Remove(product);
+
+                successMessage = $"המוצר {product.ProductName} נמחק בהצלחה.";
+            }
+            else
+            {
+                string error = await response.Content.ReadAsStringAsync();
+
+                loadError = "לא ניתן למחוק את המוצר: " + error;
+            }
+        }
+        catch (Exception ex)
+        {
+            loadError = "אירעה שגיאה במחיקת המוצר: " +
+                        ex.GetBaseException().Message;
+        }
+        finally
+        {
+            savingProductIds.Remove(product.ProductID);
+        }
+    }
+
+    // ביטול טופס
+    private void CancelForm()
+    {
+        showForm = false;
+        formProduct = new Product();
+        previewImage = string.Empty;
+        loadError = string.Empty;
+    }
+
+    // שם הקטגוריה
+    private string GetCategoryName(int categoryID)
+    {
+        if (categoryID == 1)
+        {
+            return "זרי פרחים";
+        }
+
+        if (categoryID == 2)
+        {
+            return "רכבי חתונה";
+        }
+
+        return "לא ידוע";
+    }
+
+    // קבלת כתובת תמונה
+    private string? GetImageSource(Product product)
+    {
+        if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+        {
+            return product.ImageUrl;
+        }
+
+        if (product.ProductImageBlob == null ||
+            product.ProductImageBlob.Length == 0)
+        {
+            return null;
+        }
+
+        string mimeType = GetImageMimeType(product.ProductImageBlob);
+
+        return $"data:{mimeType};base64,{Convert.ToBase64String(product.ProductImageBlob)}";
+    }
+
+    // זיהוי סוג התמונה לפי תוכן הקובץ
+    private string GetImageMimeType(byte[] image)
+    {
+        if (image.Length >= 8 &&
+            image[0] == 137 &&
+            image[1] == 80 &&
+            image[2] == 78 &&
+            image[3] == 71)
+        {
+            return "image/png";
+        }
+
+        if (image.Length >= 3 &&
+            image[0] == 255 &&
+            image[1] == 216 &&
+            image[2] == 255)
+        {
+            return "image/jpeg";
+        }
+
+        if (image.Length >= 12 &&
+            image[0] == 82 &&
+            image[1] == 73 &&
+            image[2] == 70 &&
+            image[3] == 70 &&
+            image[8] == 87 &&
+            image[9] == 69 &&
+            image[10] == 66 &&
+            image[11] == 80)
+        {
+            return "image/webp";
+        }
+
+        return "image/jpeg";
+    }
+
+    // התנתקות
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}
+

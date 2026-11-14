@@ -1,0 +1,40 @@
+﻿
+@* רכיב משותף להצגת נתון מרכזי בדשבורד של האתר *@
+
+<div class="rr-dashboard-card">
+    <div class="flex items-center justify-between gap-3 mb-5">
+        <div>
+            <p class="text-sm text-on-surface-variant mb-1">@Title</p>
+            <h3 class="text-2xl sm:text-3xl font-semibold text-on-surface">
+                @Value
+            </h3>
+        </div>
+
+        <div class="rr-dashboard-icon">
+            <span class="material-symbols-outlined">@Icon</span>
+        </div>
+    </div>
+
+    <p class="text-xs text-on-surface-variant">
+        @Description
+    </p>
+</div>
+
+@code {
+    // כותרת הנתון
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    // הערך שיוצג בכרטיס
+    [Parameter]
+    public string Value { get; set; } = "";
+
+    // אייקון Material Symbols
+    [Parameter]
+    public string Icon { get; set; } = "analytics";
+
+    // תיאור קצר מתחת לנתון
+    [Parameter]
+    public string Description { get; set; } = "";
+}
+

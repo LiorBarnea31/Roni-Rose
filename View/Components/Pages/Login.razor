@@ -1,0 +1,197 @@
+﻿@page "/login"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using System.Net
+@using System.Net.Http.Json
+@using Model
+@using View.Components.Shared
+@using View.Services
+
+@inject HttpClient Http
+@inject UserSession Session
+@inject NavigationManager Navigation
+
+<PageTitle>כניסה לחשבון · Roni Rose</PageTitle>
+
+<div class="flex flex-col items-center justify-center py-10 px-4">
+    <div class="w-full max-w-md">
+
+        <div class="bg-surface-container-lowest border border-[#eee2d6] shadow-[0_12px_36px_rgba(74,66,56,0.08)] rounded-3xl p-8 sm:p-10 text-right">
+
+            <h1 class="font-headline-md text-2xl sm:text-3xl text-on-surface font-normal mb-2">
+                כניסה לחשבון
+            </h1>
+
+            <p class="text-on-surface-variant text-sm mb-6">
+                התחברו כדי לצפות בהזמנות, לנהל את כתובות המשלוח וליהנות מהטבות הבוטיק.
+            </p>
+
+            <form novalidate class="space-y-4">
+
+                <Field Id="login-username"
+                       Label="שם משתמש"
+                       Name="username"
+                       Value="@username"
+                       ValueChanged="UpdateUsername" />
+
+                <Field Id="login-password"
+                       Label="סיסמה"
+                       Name="password"
+                       Type="password"
+                       Dir="ltr"
+                       Value="@password"
+                       ValueChanged="UpdatePassword" />
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm mt-2"
+                         role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                <button style="background-color: #8a4a3d !important; border-color: #8a4a3d !important; color: #ffffff !important;"
+                        class="w-full mt-4 py-3 px-4 rounded-xl font-label-lg text-sm sm:text-base transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer border-0"
+                        type="button"
+                        disabled="@isBusy"
+                        @onclick="LoginAsync">
+
+                    @(isBusy ? "בודקים..." : "כניסה")
+
+                </button>
+
+            </form>
+        </div>
+
+        <p class="text-center mt-6 text-on-surface-variant text-sm">
+            עדיין אין לכם חשבון בבוטיק?
+            <a class="font-semibold text-primary hover:underline" href="register">
+                להרשמה מהירה
+            </a>
+        </p>
+
+    </div>
+</div>
+
+@code {
+    private string? username;
+    private string? password;
+    private string? errorMessage;
+    private bool isBusy;
+
+    private void UpdateUsername(string? val)
+    {
+        username = val;
+    }
+
+    private void UpdatePassword(string? val)
+    {
+        password = val;
+    }
+
+    private async Task LoginAsync()
+    {
+        if (isBusy)
+            return;
+
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(username) ||
+            string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "יש למלא שם משתמש וסיסמה.";
+            return;
+        }
+
+        isBusy = true;
+
+        try
+        {
+            using var cts = new CancellationTokenSource(
+                TimeSpan.FromSeconds(10)
+            );
+
+            User credentials = new User
+            {
+                Username = username.Trim(),
+                Password = password
+            };
+
+            using HttpResponseMessage response = await Http.PostAsJsonAsync(
+                "api/users/login",
+                credentials,
+                cts.Token
+            );
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                errorMessage = "שם המשתמש או הסיסמה שגויים.";
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = "הכניסה נכשלה. קוד שגיאה: " +
+                               (int)response.StatusCode;
+                return;
+            }
+
+            User? user = await response.Content.ReadFromJsonAsync<User>(
+                cancellationToken: cts.Token
+            );
+
+            if (user == null || user.Id <= 0)
+            {
+                errorMessage = "לא התקבלו פרטי משתמש תקינים מהשרת.";
+                return;
+            }
+
+            string role = user.RoleName?.Trim().ToLowerInvariant() ?? "";
+
+            string destination;
+
+            switch (role)
+            {
+                case "admin":
+                    destination = "/admin";
+                    break;
+
+                case "customer":
+                    destination = "/customer";
+                    break;
+
+                case "guest":
+                    destination = "/guest";
+                    break;
+
+                default:
+                    errorMessage = "התפקיד של המשתמש אינו מוכר במערכת.";
+                    return;
+            }
+
+            Session.Login(user);
+
+            Navigation.NavigateTo(destination);
+        }
+        catch (OperationCanceledException)
+        {
+            errorMessage = "הבקשה נמשכה יותר מדי זמן. בדוק שהשרת פועל.";
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = "לא ניתן להתחבר לשרת. " + ex.Message;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                "LOGIN ERROR: " + ex.ToString()
+            );
+
+            errorMessage = "אירעה שגיאה בהתחברות: " + ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+}

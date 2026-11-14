@@ -46,6 +46,7 @@ namespace DAL
                     Email VARCHAR(100) NOT NULL UNIQUE,
                     Password VARCHAR(255) NOT NULL,
                     Phone VARCHAR(20) NULL,
+                    IsActive BOOLEAN NOT NULL DEFAULT TRUE, 
                     Role VARCHAR(20) DEFAULT 'Customer'
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

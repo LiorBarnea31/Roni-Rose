@@ -1,9 +1,397 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
-@Body
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Roni Rose - Flowers & More</title>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+    <!-- גופנים ואייקונים -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@100..900&family=Plus+Jakarta+Sans:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- סקריפט Tailwind והגדרות תמה -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary": "#8a4a3d",
+                            "primary-container": "#a76253",
+                            "primary-fixed": "#ffdad3",
+                            "primary-fixed-dim": "#ffb4a4",
+                            "secondary": "#765a26",
+                            "secondary-container": "#fed798",
+                            "surface": "#fff8f3",
+                            "surface-container": "#f9ecde",
+                            "surface-container-low": "#fff1e3",
+                            "surface-container-lowest": "#ffffff",
+                            "on-surface": "#211b12",
+                            "on-surface-variant": "#534340"
+                        },
+                        fontFamily: {
+                            "headline-lg": ["Noto Serif"],
+                            "headline-md": ["Noto Serif"],
+                            "headline-sm": ["Noto Serif"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "label-lg": ["Plus Jakarta Sans"],
+                            "label-sm": ["Plus Jakarta Sans"]
+                        }
+                    }
+                }
+            };
+    </script>
+</head>
+
+<body class="bg-surface font-body-md text-on-surface flex flex-col min-h-screen selection:bg-primary-fixed">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="fixed top-0 w-full z-50 bg-[#fdfbf9]/90 backdrop-blur-md shadow-[0_2px_15px_rgba(74,66,56,0.05)] border-b border-[#efe6dc]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+
+            <!-- כפתורי פעולה -->
+            <div class="flex items-center gap-3 sm:gap-6">
+
+                <!-- תפריט מובייל -->
+                <button id="mobile-menu-btn" aria-label="תפריט" class="lg:hidden p-2 text-on-surface hover:text-primary transition-colors flex items-center justify-center active:scale-95" type="button">
+                    <span class="material-symbols-outlined text-[24px]">menu</span>
+                </button>
+
+                <!-- סל קניות -->
+                <a class="relative p-2 text-on-surface hover:text-primary transition-colors flex items-center gap-1.5 active:scale-95" href="/cart">
+                    <span class="material-symbols-outlined text-[22px] sm:text-[24px]">shopping_bag</span>
+                    <span class="absolute top-1 right-1 bg-primary text-white text-[10px] sm:text-[11px] font-medium w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                </a>
+
+                <!-- כניסה לחשבון -->
+                <NavLink href="/login" class="hidden sm:flex p-2 text-on-surface hover:text-primary transition-colors items-center justify-center active:scale-95" title="כניסה / הרשמה">
+                    <span class="material-symbols-outlined text-[22px]">person</span>
+                </NavLink>
+
+                <!-- חיפוש -->
+                <button aria-label="חיפוש"
+                        @onclick="ToggleSearch"
+                        class="p-2 text-on-surface hover:text-primary transition-colors flex items-center justify-center active:scale-95"
+                        type="button">
+                    <span class="material-symbols-outlined text-[22px]">search</span>
+                </button>
+            </div>
+
+            <!-- ניווט מרכזי -->
+            <nav class="hidden lg:flex items-center gap-10 font-headline-sm text-[16px] text-on-surface">
+
+                <NavLink class="hover:text-primary transition-colors" href="/contact">
+                    צור קשר
+                </NavLink>
+
+                <NavLink class="hover:text-primary transition-colors" href="/about">
+                    אודות
+                </NavLink>
+
+                <NavLink class="hover:text-primary transition-colors" href="/bouquets">
+                    חנות
+                </NavLink>
+
+                <NavLink href="/" class="text-primary font-semibold relative after:content-[''] after:absolute after:-bottom-1.5 after:right-0 after:left-0 after:h-[2px] after:bg-primary" Match="NavLinkMatch.All">
+                    ראשי
+                </NavLink>
+
+            </nav>
+
+            <!-- לוגו -->
+            <div class="flex items-center gap-3">
+                <NavLink href="/" class="flex items-center gap-2 sm:gap-3 group text-right">
+                    <div class="flex flex-col items-start">
+                        <span class="font-headline-md text-[20px] sm:text-[26px] tracking-wide text-on-surface font-normal">Roni Rose</span>
+                        <span class="text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.25em] text-secondary font-medium uppercase -mt-1">FLOWERS &amp; MORE</span>
+                    </div>
+
+                    <svg class="w-6 h-6 sm:w-7 sm:h-7 text-primary/80 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 40 40">
+                        <path d="M20 5 C28 5 35 12 35 20 C35 28 28 35 20 35 C12 35 5 28 5 20 C5 12 12 5 20 5 Z" stroke-dasharray="2 4"></path>
+                        <path d="M20 12 C16 16 14 20 20 24 C26 20 24 16 20 12 Z" fill="currentColor" fill-opacity="0.15"></path>
+                        <path d="M12 20 C16 16 20 14 24 20 C20 26 16 24 12 20 Z" fill="currentColor" fill-opacity="0.15"></path>
+                    </svg>
+                </NavLink>
+            </div>
+
+        </div>
+
+        <!-- שורת חיפוש -->
+        @if (isSearchOpen)
+        {
+            <div class="bg-[#fdfbf9] border-t border-[#efe6dc] px-4 py-4 shadow-md">
+                <form @onsubmit="SubmitSearch"
+                      @onsubmit:preventDefault="true"
+                      class="max-w-3xl mx-auto flex items-center gap-3">
+
+                    <div class="flex-1 relative">
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-secondary">
+                            search
+                        </span>
+
+                        <input type="text"
+                               @bind="searchText"
+                               @bind:event="oninput"
+                               placeholder="חיפוש מוצרים בחנות..."
+                               class="w-full bg-white border border-[#e8ded4] rounded-xl py-3 pr-11 pl-4 text-sm focus:outline-none focus:border-primary"
+                               autofocus />
+                    </div>
+
+                    <button type="submit"
+                            class="bg-primary text-white px-5 py-3 rounded-xl hover:bg-primary-container transition-colors text-sm">
+                        חיפוש
+                    </button>
+
+                    <button type="button"
+                            @onclick="ToggleSearch"
+                            class="text-on-surface-variant hover:text-primary p-2">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+
+                </form>
+            </div>
+        }
+
+        <!-- תפריט מובייל -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-surface-container-low border-b border-[#efe6dc] px-6 py-4 flex flex-col gap-4 text-right">
+
+            <NavLink class="text-on-surface hover:text-primary transition-colors font-headline-sm text-[16px] py-1" href="/" Match="NavLinkMatch.All">
+                ראשי
+            </NavLink>
+
+            <NavLink class="text-on-surface hover:text-primary transition-colors font-headline-sm text-[16px] py-1" href="/bouquets">
+                חנות
+            </NavLink>
+
+            <NavLink class="text-on-surface hover:text-primary transition-colors font-headline-sm text-[16px] py-1" href="/about">
+                אודות
+            </NavLink>
+
+            <NavLink class="text-on-surface hover:text-primary transition-colors font-headline-sm text-[16px] py-1" href="/contact">
+                צור קשר
+            </NavLink>
+
+            <NavLink class="text-primary font-semibold transition-colors font-headline-sm text-[16px] py-1 border-t border-[#efe6dc] pt-3 flex items-center gap-2" href="/login">
+                <span class="material-symbols-outlined text-[20px]">person</span>
+                <span>כניסה / הרשמה</span>
+            </NavLink>
+
+        </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="flex flex-col relative w-full pt-20 pb-24 bg-surface min-h-screen">
+
+        <div class="w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-12">
+            @Body
+        </div>
+
+        <!-- ==================== CHATBOT ==================== -->
+        <div class="fixed bottom-6 left-4 sm:bottom-8 sm:left-8 z-50 flex flex-col items-start">
+
+            <!-- חלון הצ'אט -->
+            <div id="chatbot-window" class="mb-4 w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-surface-container-lowest border border-[#eee2d6] shadow-[0_12px_36px_rgba(74,66,56,0.18)] overflow-hidden text-right hidden">
+
+                <div class="bg-primary text-white p-4 flex items-center justify-between">
+                    <div>
+                        <h4 class="font-headline-sm text-[15px] font-medium">עוזרת הבוטיק של Roni Rose</h4>
+                        <span class="text-[11px] text-white/80">מענה מיידי בנושאי משלוחים והתאמות</span>
+                    </div>
+
+                    <button type="button" id="close-chatbot-btn" class="text-white/80 hover:text-white">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+
+                <div class="p-4 max-h-60 overflow-y-auto space-y-3 bg-[#fdfbf9] text-[13px]">
+                    <div class="bg-surface-container p-3 rounded-xl text-on-surface">
+                        שלום! אני כאן לעזור לכם בבחירת הזר המושלם, מידע על זמני אספקה ובדיקת אזורי משלוח אונליין. במה תרצו להיעזר?
+                    </div>
+                </div>
+
+                <div class="p-3 border-t border-[#ede2d6] bg-white flex items-center gap-2">
+                    <input type="text" placeholder="כתבו הודעה..." class="flex-1 text-[13px] bg-surface-container-low px-3 py-1.5 rounded-lg border border-[#e4d6c8] focus:outline-none focus:border-primary">
+
+                    <button type="button" class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[16px]">send</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- כפתור הצ'אט -->
+            <button id="toggle-chatbot-btn" type="button" class="flex items-center gap-2 px-4 sm:px-5 py-3 rounded-full bg-primary text-white shadow-[0_6px_24px_rgba(138,74,61,0.32)] hover:bg-primary-container transition-all active:scale-95">
+                <span class="material-symbols-outlined text-[20px] sm:text-[22px]">support_agent</span>
+                <span class="font-label-lg text-[13px] sm:text-[14px] hidden sm:inline">שירות לקוחות אונליין</span>
+                <span class="font-label-lg text-[13px] sm:hidden">צ'אט</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            </button>
+
+        </div>
+
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="bg-[#251f1c] text-[#eee2d6] pt-12 sm:pt-16 pb-12 border-t border-[#3d332d]">
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12 text-right">
+
+            <div class="flex flex-col items-start">
+                <div class="flex flex-col mb-4">
+                    <span class="font-headline-md text-[22px] sm:text-[24px] text-white font-normal">Roni Rose</span>
+                    <span class="text-[10px] tracking-[0.25em] text-[#d8c2bd] font-medium uppercase">FLOWERS &amp; MORE</span>
+                </div>
+
+                <p class="text-[#cfc3b7] text-[13px] leading-relaxed mb-4">
+                    בוטיק שזירה פרימיום המתמחה בעיצובים אמנותיים, אירועים יוקרתיים ומשלוחי פרחים מובחרים הנארזים בקפידה ובאהבה.
+                </p>
+
+                <span class="text-[12px] text-[#9c8e82]">רכישות ומשלוחים אונליין בלבד באתר הבוטיק.</span>
+            </div>
+
+            <div>
+                <h4 class="font-headline-sm text-[16px] text-white mb-4 font-medium">ניווט מהיר</h4>
+
+                <ul class="space-y-2.5 text-[14px] text-[#cfc3b7]">
+                    <li>
+                        <NavLink href="/" Match="NavLinkMatch.All" class="hover:text-white transition-colors">
+                            דף הבית
+                        </NavLink>
+                    </li>
+
+                    <li>
+                        <NavLink href="/bouquets" class="hover:text-white transition-colors">
+                            קטלוג זרי פרחים
+                        </NavLink>
+                    </li>
+
+                    <li>
+                        <NavLink href="/about" class="hover:text-white transition-colors">
+                            אודות האטלייה
+                        </NavLink>
+                    </li>
+
+                    <li>
+                        <NavLink href="/contact" class="hover:text-white transition-colors">
+                            צור קשר
+                        </NavLink>
+                    </li>
+
+                    <li>
+                        <NavLink href="/login" class="hover:text-white transition-colors">
+                            החשבון שלי / כניסה
+                        </NavLink>
+                    </li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-headline-sm text-[16px] text-white mb-4 font-medium">משלוחים ושירות</h4>
+
+                <ul class="space-y-2.5 text-[14px] text-[#cfc3b7]">
+                    <li>אזורי חלוקה: מרכז, שרון והסביבה</li>
+                    <li>משלוחי אקספרס מהיום להיום (בהזמנה עד 13:00)</li>
+                    <li>רכבי משלוח מבוקרי טמפרטורה</li>
+                    <li>מעקב משלוח דיגיטלי מלא</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="font-headline-sm text-[16px] text-white mb-4 font-medium">שעות פעילות אטלייה</h4>
+
+                <div class="space-y-2 text-[14px] text-[#cfc3b7]">
+                    <p>ימים א׳-ה׳: 08:30 - 19:30</p>
+                    <p>יום ו׳ וערבי חג: 08:00 - 15:30</p>
+                    <p>שבת: סגור לשזירה</p>
+                    <p class="text-[12px] text-primary-fixed-dim pt-2">מענה וירטואלי זמין 24/7 באמצעות הצ'אט-בוט</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 mt-8 sm:mt-12 pt-8 border-t border-[#3b322c] flex flex-col md:flex-row items-center justify-between text-[12px] text-[#9c8e82] gap-4">
+
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6">
+                <a href="#" class="hover:text-white transition-colors">תנאי שימוש ותקנון האתר</a>
+                <a href="#" class="hover:text-white transition-colors">מדיניות פרטיות</a>
+                <a href="#" class="hover:text-white transition-colors">ביטול עסקה והחזרות</a>
+            </div>
+
+            <p class="text-center md:text-right">© 2026 Roni Rose • בוטיק שזירה פרימיום • כל הזכויות שמורות</p>
+
+        </div>
+    </footer>
+
+    <!-- ==================== JAVASCRIPT ==================== -->
+    <script>
+            document.addEventListener("DOMContentLoaded", () => {
+
+                // ניהול צ'אט
+                const chatbotWindow = document.getElementById("chatbot-window");
+                const toggleBtn = document.getElementById("toggle-chatbot-btn");
+                const closeBtn = document.getElementById("close-chatbot-btn");
+
+                if (toggleBtn && chatbotWindow) {
+                    toggleBtn.addEventListener("click", () => {
+                        chatbotWindow.classList.toggle("hidden");
+                    });
+                }
+
+                if (closeBtn && chatbotWindow) {
+                    closeBtn.addEventListener("click", () => {
+                        chatbotWindow.classList.add("hidden");
+                    });
+                }
+
+                // ניהול תפריט מובייל
+                const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+                const mobileMenu = document.getElementById("mobile-menu");
+
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener("click", () => {
+                        mobileMenu.classList.toggle("hidden");
+                    });
+
+                    // סגירת התפריט בלחיצה על קישור
+                    mobileMenu.querySelectorAll("a").forEach(link => {
+                        link.addEventListener("click", () => {
+                            mobileMenu.classList.add("hidden");
+                        });
+                    });
+                }
+
+            });
+    </script>
+
+</body>
+</html>
+
+@code {
+    private bool isSearchOpen = false;
+    private string searchText = string.Empty;
+
+    private void ToggleSearch()
+    {
+        isSearchOpen = !isSearchOpen;
+    }
+
+    private void SubmitSearch()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            Navigation.NavigateTo("/bouquets");
+        }
+        else
+        {
+            string search = Uri.EscapeDataString(searchText.Trim());
+            Navigation.NavigateTo($"/bouquets?search={search}");
+        }
+
+        isSearchOpen = false;
+    }
+}
+

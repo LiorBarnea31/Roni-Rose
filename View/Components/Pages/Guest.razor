@@ -1,0 +1,50 @@
+﻿@page "/guest"
+@using View.Services
+@inject UserSession Session
+@inject NavigationManager Navigation
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>עמוד אורח</PageTitle>
+
+@if (isLoading)
+{
+    <div class="flex justify-center items-center py-20">
+        <p class="text-on-surface-variant">טוען נתונים...</p>
+    </div>
+}
+else if (authorized)
+{
+    <div class="p-8 text-right">
+        <h1 class="text-3xl font-bold mb-4">ברוך הבא לעמוד האורח</h1>
+        <p class="text-on-surface-variant">כאן ניתן לצפות בתוכן האתר ללא אפשרות לבצע הזמנות.</p>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool authorized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!Session.IsLoggedIn)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (Session.RoleName != "Guest")
+            {
+                Navigation.NavigateTo("/no-permission");
+                return;
+            }
+
+            authorized = true;
+            isLoading = false;
+            StateHasChanged();
+        }
+
+        await Task.CompletedTask;
+    }
+}

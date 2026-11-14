@@ -1,27 +1,48 @@
+
 using View.Components;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+namespace View
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddRazorComponents()
+                .AddInteractiveServerComponents();
+
+            string apiBaseUrl = builder.Configuration["ApiBaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "ApiBaseUrl not found in appsettings.json.");
+
+            builder.Services.AddScoped(sp =>
+                new HttpClient { BaseAddress = new Uri(apiBaseUrl) });
+
+            builder.Services.AddScoped<View.Services.UserSession>();
+
+            builder.Services.AddScoped<View.Services.ShoppingCartService>();
+
+            var app = builder.Build();
+
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Error");
+            }
+
+            app.UseStatusCodePagesWithReExecute(
+                "/not-found",
+                createScopeForStatusCodePages: true);
+
+            app.UseAntiforgery();
+
+            app.MapStaticAssets();
+
+            app.MapRazorComponents<App>()
+                .AddInteractiveServerRenderMode();
+
+            app.Run();
+        }
+    }
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
 
-app.UseAntiforgery();
-
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-app.Run();

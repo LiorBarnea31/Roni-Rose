@@ -1,0 +1,596 @@
+﻿
+@page "/admin/users"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@using View.Services
+@using View.Components.Shared
+@using System.Net.Http.Json
+@using Microsoft.JSInterop
+
+@inject UserSession Session
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>ניהול משתמשים · Roni Rose</PageTitle>
+
+@if (Session.IsLoggedIn && string.Equals(Session.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+{
+    <div class="w-full">
+
+        <PageHeader Title="ניהול משתמשים"
+                    Subtitle="USER MANAGEMENT"
+                    Description="צפייה במשתמשים הרשומים באתר, מעקב אחר תפקידיהם וניהול החשבונות במערכת." />
+
+        <div class="grid grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)] gap-6 items-start">
+
+            @* סרגל ניווט *@
+            <aside class="bg-white border border-[#eee2d6] rounded-2xl p-4 shadow-sm">
+
+                <p class="text-xs text-secondary font-semibold tracking-widest mb-4 px-3">
+                    תפריט ניהול
+                </p>
+
+                <nav class="flex flex-col gap-1">
+
+                    <NavLink href="/" Match="NavLinkMatch.All" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span class="text-sm">ראשי</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/users" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">group</span>
+                        <span class="text-sm">ניהול משתמשים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/products" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">local_florist</span>
+                        <span class="text-sm">ניהול מוצרים</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/orders" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <span class="text-sm">ניהול הזמנות</span>
+                    </NavLink>
+
+                    <NavLink href="/admin/reports" class="rr-dashboard-link">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        <span class="text-sm">דוחות ונתונים</span>
+                    </NavLink>
+
+                </nav>
+
+                <div class="border-t border-[#eee2d6] my-4"></div>
+
+                <button type="button"
+                        class="rr-dashboard-link w-full text-right"
+                        @onclick="Logout">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="text-sm">התנתקות</span>
+                </button>
+
+            </aside>
+
+            @* תוכן מרכזי *@
+            <div class="min-w-0 space-y-7">
+
+                @* כותרת *@
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-semibold text-on-surface">
+                            המשתמשים במערכת
+                        </h2>
+
+                        <p class="text-xs text-on-surface-variant mt-1">
+                            ניהול ומעקב אחר חשבונות המשתמשים באתר
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            @onclick="LoadUsers"
+                            disabled="@isLoading"
+                            class="inline-flex items-center justify-center gap-2 bg-primary text-white rounded-xl px-5 py-3 text-sm hover:opacity-90 transition disabled:opacity-50">
+                        <span class="material-symbols-outlined text-lg">refresh</span>
+                        רענון נתונים
+                    </button>
+                </div>
+
+                @* הודעות *@
+                @if (isLoading)
+                {
+                    <div class="bg-white border border-[#eee2d6] rounded-2xl p-6 text-center">
+                        <p class="text-sm text-on-surface-variant">
+                            טוען משתמשים ממסד הנתונים...
+                        </p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(loadError))
+                {
+                    <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+                        <p class="text-sm text-red-700">
+                            @loadError
+                        </p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="bg-green-50 border border-green-200 rounded-2xl p-4">
+                        <p class="text-sm text-green-700">
+                            @successMessage
+                        </p>
+                    </div>
+                }
+
+                @* כרטיסי סיכום *@
+                <section>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+
+                        <DashboardCard Title="סך המשתמשים"
+                                       Value="@(users.Count.ToString("N0"))"
+                                       Icon="group"
+                                       Description="כל החשבונות הרשומים באתר" />
+
+                        <DashboardCard Title="לקוחות"
+                                       Value="@(CustomerCount.ToString("N0"))"
+                                       Icon="person_check"
+                                       Description="חשבונות בעלי תפקיד לקוח" />
+
+                        <DashboardCard Title="מנהלי מערכת"
+                                       Value="@(AdminCount.ToString("N0"))"
+                                       Icon="admin_panel_settings"
+                                       Description="חשבונות בעלי הרשאות ניהול" />
+
+                    </div>
+                </section>
+
+                @* חיפוש וסינון *@
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 shadow-sm">
+
+                    <h3 class="text-sm font-semibold text-on-surface mb-4">
+                        חיפוש וסינון משתמשים
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                                search
+                            </span>
+
+                            <input type="text"
+                                   @bind="searchText"
+                                   @bind:event="oninput"
+                                   placeholder="חיפוש לפי שם, אימייל או שם משתמש"
+                                   class="w-full border border-[#eee2d6] rounded-xl py-3 pr-10 pl-3 text-sm bg-[#fffdfa] focus:outline-none focus:border-primary" />
+                        </div>
+
+                        <select @bind="selectedRole"
+                                class="w-full border border-[#eee2d6] rounded-xl py-3 px-3 text-sm bg-[#fffdfa] text-on-surface-variant focus:outline-none focus:border-primary">
+
+                            <option value="">כל התפקידים</option>
+                            <option value="Admin">מנהל</option>
+                            <option value="Customer">לקוח</option>
+                            <option value="Guest">אורח</option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 mt-4">
+
+                        <span class="rr-status rr-status-processing">
+                            @FilteredUsers.Count() משתמשים מוצגים
+                        </span>
+
+                        <button type="button"
+                                @onclick="ClearFilters"
+                                class="text-xs text-primary hover:underline">
+                            ניקוי סינון
+                        </button>
+
+                    </div>
+
+                </section>
+
+                @* טבלת משתמשים *@
+                <section class="bg-white border border-[#eee2d6] rounded-2xl p-5 sm:p-6 shadow-sm">
+
+                    <div class="flex items-center justify-between gap-3 mb-5">
+                        <div>
+                            <h3 class="text-lg font-semibold text-on-surface">
+                                רשימת משתמשים
+                            </h3>
+
+                            <p class="text-xs text-on-surface-variant mt-1">
+                                מוצגים @FilteredUsers.Count() משתמשים מתוך @users.Count
+                            </p>
+                        </div>
+
+                        <span class="material-symbols-outlined text-primary text-2xl">
+                            manage_accounts
+                        </span>
+                    </div>
+
+                    <div class="rr-table-wrapper">
+                        <table class="rr-dashboard-table">
+
+                            <thead>
+                                <tr>
+                                    <th>משתמש</th>
+                                    <th>כתובת אימייל</th>
+                                    <th>שם משתמש</th>
+                                    <th>טלפון</th>
+                                    <th>תפקיד</th>
+                                    <th>פעולות</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                @if (!isLoading && FilteredUsers.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-8">
+                                            לא נמצאו משתמשים
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var user in FilteredUsers)
+                                    {
+                                        <tr @key="user.Id">
+
+                                            <td>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-9 h-9 rounded-full bg-[#f9ecde] text-primary flex items-center justify-center font-semibold">
+                                                        @GetInitial(user.FullName)
+                                                    </div>
+
+                                                    <span class="font-semibold">
+                                                        @user.FullName
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                @user.Email
+                                            </td>
+
+                                            <td>
+                                                @user.Username
+                                            </td>
+
+                                            <td>
+                                                @(string.IsNullOrWhiteSpace(user.Phone) ? "-" : user.Phone)
+                                            </td>
+
+                                            <td>
+                                                <select @bind="user.RoleName"
+                                                        class="border border-[#eee2d6] rounded-lg px-2 py-2 text-xs bg-[#fffdfa]">
+
+                                                    <option value="Customer">לקוח</option>
+                                                    <option value="Admin">מנהל</option>
+                                                    <option value="Guest">אורח</option>
+
+                                                </select>
+                                            </td>
+
+                                            <td>
+                                                <div class="flex items-center gap-2">
+
+                                                    <button type="button"
+                                                            @onclick="() => UpdateRole(user)"
+                                                            disabled="@savingUserIds.Contains(user.Id)"
+                                                            class="text-primary hover:opacity-70 disabled:opacity-40"
+                                                            title="שמירת תפקיד">
+
+                                                        <span class="material-symbols-outlined">
+                                                            save
+                                                        </span>
+
+                                                    </button>
+
+                                                    <button type="button"
+                                                            @onclick="() => DeleteUser(user)"
+                                                            disabled="@savingUserIds.Contains(user.Id)"
+                                                            class="text-red-500 hover:opacity-70 disabled:opacity-40"
+                                                            title="מחיקת משתמש">
+
+                                                        <span class="material-symbols-outlined">
+                                                            delete
+                                                        </span>
+
+                                                    </button>
+
+                                                </div>
+                                            </td>
+
+                                        </tr>
+                                    }
+                                }
+
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                @* מידע על תפקידים *@
+                <section class="bg-[#fff8f3] border border-[#eee2d6] rounded-2xl p-5">
+
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-primary text-2xl">
+                            info
+                        </span>
+
+                        <div>
+                            <h3 class="text-sm font-semibold text-on-surface mb-1">
+                                מידע על תפקידי המשתמשים
+                            </h3>
+
+                            <p class="text-xs text-on-surface-variant leading-relaxed">
+                                מנהל מקבל גישה לאזור הניהול של האתר, לקוח יכול לבצע הזמנות ולצפות בפרטי החשבון שלו,
+                                ואורח יכול לצפות בתוכן הציבורי של האתר.
+                            </p>
+                        </div>
+                    </div>
+
+                </section>
+
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-center py-16">
+        <span class="material-symbols-outlined text-5xl text-primary mb-3">
+            lock
+        </span>
+
+        <p class="text-on-surface-variant">
+            בודק הרשאות...
+        </p>
+    </div>
+}
+
+@code {
+
+    private List<AdminUserRow> users = new List<AdminUserRow>();
+
+    private HashSet<int> savingUserIds = new HashSet<int>();
+
+    private string searchText = string.Empty;
+
+    private string selectedRole = string.Empty;
+
+    private string loadError = string.Empty;
+
+    private string successMessage = string.Empty;
+
+    private bool isLoading = true;
+
+    // מספר הלקוחות
+    private int CustomerCount
+    {
+        get
+        {
+            int count = 0;
+
+            foreach (var user in users)
+            {
+                if (string.Equals(user.RoleName, "Customer", StringComparison.OrdinalIgnoreCase))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
+    // מספר המנהלים
+    private int AdminCount
+    {
+        get
+        {
+            int count = 0;
+
+            foreach (var user in users)
+            {
+                if (string.Equals(user.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+
+    // משתמשים לאחר חיפוש וסינון
+    private IEnumerable<AdminUserRow> FilteredUsers
+    {
+        get
+        {
+            IEnumerable<AdminUserRow> result = users;
+
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                string search = searchText.Trim();
+
+                result = result.Where(user =>
+                    (user.FullName ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    (user.Email ?? "").Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    (user.Username ?? "").Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedRole))
+            {
+                result = result.Where(user =>
+                    string.Equals(user.RoleName, selectedRole, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Session.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!string.Equals(Session.RoleName, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            Navigation.NavigateTo("/no-permission");
+            return;
+        }
+
+        await LoadUsers();
+    }
+
+    // טעינת המשתמשים מהשרת
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            loadError = string.Empty;
+            successMessage = string.Empty;
+
+            List<AdminUserRow>? result =
+                await Http.GetFromJsonAsync<List<AdminUserRow>>("api/users");
+
+            users = result ?? new List<AdminUserRow>();
+        }
+        catch (Exception)
+        {
+            loadError = "אירעה שגיאה בטעינת המשתמשים. בדוק שהשרת פועל ושהחיבור למסד הנתונים תקין.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // שינוי תפקיד משתמש
+    private async Task UpdateRole(AdminUserRow user)
+    {
+        try
+        {
+            savingUserIds.Add(user.Id);
+            loadError = string.Empty;
+            successMessage = string.Empty;
+
+            string url = $"api/users/{user.Id}/role?roleName={Uri.EscapeDataString(user.RoleName)}";
+
+            HttpResponseMessage response = await Http.PutAsync(url, null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = $"התפקיד של {user.FullName} עודכן בהצלחה.";
+            }
+            else
+            {
+                loadError = "לא ניתן לעדכן את תפקיד המשתמש.";
+            }
+        }
+        catch (Exception)
+        {
+            loadError = "אירעה שגיאה בעת עדכון התפקיד.";
+        }
+        finally
+        {
+            savingUserIds.Remove(user.Id);
+        }
+    }
+
+    // מחיקת משתמש
+    private async Task DeleteUser(AdminUserRow user)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"האם אתה בטוח שברצונך למחוק את המשתמש {user.FullName}?"
+        );
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            savingUserIds.Add(user.Id);
+            loadError = string.Empty;
+            successMessage = string.Empty;
+
+            HttpResponseMessage response =
+                await Http.DeleteAsync($"api/users/{user.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                users.Remove(user);
+                successMessage = $"המשתמש {user.FullName} נמחק בהצלחה.";
+            }
+            else
+            {
+                loadError = "לא ניתן למחוק את המשתמש.";
+            }
+        }
+        catch (Exception)
+        {
+            loadError = "אירעה שגיאה בעת מחיקת המשתמש.";
+        }
+        finally
+        {
+            savingUserIds.Remove(user.Id);
+        }
+    }
+
+    // ניקוי החיפוש והסינון
+    private void ClearFilters()
+    {
+        searchText = string.Empty;
+        selectedRole = string.Empty;
+    }
+
+    // אות ראשונה בשם המשתמש
+    private string GetInitial(string? fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            return "?";
+        }
+
+        return fullName.Substring(0, 1);
+    }
+
+    // התנתקות
+    private void Logout()
+    {
+        Session.Logout();
+        Navigation.NavigateTo("/login");
+    }
+
+    // מחלקה מקומית לנתוני המשתמש שמתקבלים מה-API
+    private class AdminUserRow
+    {
+        public int Id { get; set; }
+
+        public string FullName { get; set; } = string.Empty;
+
+        public string Username { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public string? Phone { get; set; }
+
+        public string RoleName { get; set; } = "Customer";
+    }
+}

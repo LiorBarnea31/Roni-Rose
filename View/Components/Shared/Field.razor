@@ -1,0 +1,41 @@
+﻿
+<div class="mb-5 text-right">
+    <label for="@Id" class="block text-sm font-medium mb-1.5"
+           style="color: #211b12 !important;">
+        @Label
+        <span class="text-red-500" aria-hidden="true">*</span>
+    </label>
+
+    <input id="@Id"
+           name="@Name"
+           type="@Type"
+           dir="@Dir"
+           required
+           value="@Value"
+           @oninput="OnInput"
+           class="w-full px-4 py-3 rounded-xl text-sm transition-all block shadow-sm outline-none"
+           style="background-color: #fff1e3 !important; border: 1px solid #e4d6c8 !important; color: #211b12 !important;" />
+
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p class="text-red-600 text-xs mt-1">@Error</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public string Type { get; set; } = "text";
+    [Parameter] public string? Dir { get; set; }
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Error { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private Task OnInput(ChangeEventArgs e)
+    {
+        return ValueChanged.InvokeAsync(e.Value?.ToString());
+    }
+}
