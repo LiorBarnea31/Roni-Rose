@@ -1,3 +1,4 @@
+
 @API_HostAddress = http://localhost:5010
 
 GET {{API_HostAddress}}/weatherforecast/
@@ -38,14 +39,27 @@ GET {{API_HostAddress}}/api/users/count-by-role
 
 ###
 
-# הוספת משתמש בדיקה (תפקיד ברירת מחדל: Student)
+# הוספת משתמש בדיקה (תפקיד ברירת מחדל: Customer)
 POST {{API_HostAddress}}/api/users
 Content-Type: application/json
 
 {
-  "username": "test.user",
+  "username": "test_user",
   "email": "test.user@example.com",
-  "password": "Test123"
+  "password": "Test1234"
+}
+
+###
+
+# הרשמה עם נתונים לא תקינים - בדיקת UserValidator
+# צפוי: 400 Bad Request ושלוש הודעות שגיאה
+POST {{API_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+  "username": "a",
+  "email": "not-an-email",
+  "password": "123"
 }
 
 ###
@@ -55,8 +69,8 @@ POST {{API_HostAddress}}/api/users/login
 Content-Type: application/json
 
 {
-  "username": "admin",
-  "password": "Admin123"
+  "username": "barnealior",
+  "password": "1234"
 }
 
 ###
