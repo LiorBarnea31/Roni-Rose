@@ -122,9 +122,10 @@
                 credentials,
                 cts.Token
             );
-
+            //בדיקת שם משתמש וסיסמא
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
+                //מה המשתמש רואה
                 errorMessage = "שם המשתמש או הסיסמה שגויים.";
                 return;
             }

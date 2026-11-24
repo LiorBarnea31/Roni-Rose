@@ -1,4 +1,5 @@
-﻿using Model;
+﻿
+using Model;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
@@ -6,18 +7,29 @@ using System.Data;
 
 namespace DAL
 {
+    // מחלקה שאחראית על שליפת נתוני ההזמנות ממסד הנתונים לצורך ניהול המערכת.
     public class OrderDB
     {
+        // שמירת מחרוזת החיבור למסד הנתונים.
         private readonly string connectionString;
 
+        // הדפסת הודעות לוג למסוף.
+        private static void Log(string message)
+        {
+            Console.WriteLine($"[ORDER DB] {DateTime.Now:HH:mm:ss} - {message}");
+        }
+
+        // Constructor שמקבל את מחרוזת החיבור ושומר אותה.
         public OrderDB(string connectionString)
         {
             this.connectionString = connectionString;
         }
 
-        // שליפת נתוני ההזמנות החודשיות
+        // ספירת מספר ההזמנות שבוצעו בחודש הנוכחי.
         public async Task<int> CountMonthlyOrdersAsync()
         {
+            Log("Counting monthly orders...");
+
             string sql = @"
                 SELECT COUNT(*)
                 FROM Orders
@@ -35,12 +47,18 @@ namespace DAL
             command.Parameters.AddWithValue("@StartDate", startDate);
             command.Parameters.AddWithValue("@EndDate", endDate);
 
-            return Convert.ToInt32(await command.ExecuteScalarAsync());
+            int count = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            Log($"Monthly orders count completed. Total orders: {count}");
+
+            return count;
         }
 
-        // חישוב ההכנסות החודשיות
+        // חישוב סך ההכנסות מכל ההזמנות בחודש הנוכחי.
         public async Task<decimal> GetMonthlyRevenueAsync()
         {
+            Log("Calculating monthly revenue...");
+
             string sql = @"
                 SELECT COALESCE(SUM(TotalPrice), 0)
                 FROM Orders
@@ -58,12 +76,18 @@ namespace DAL
             command.Parameters.AddWithValue("@StartDate", startDate);
             command.Parameters.AddWithValue("@EndDate", endDate);
 
-            return Convert.ToDecimal(await command.ExecuteScalarAsync());
+            decimal revenue = Convert.ToDecimal(await command.ExecuteScalarAsync());
+
+            Log($"Monthly revenue calculation completed. Revenue: {revenue}");
+
+            return revenue;
         }
 
-        // ספירת הזמנות שממתינות לטיפול
+        // ספירת כל ההזמנות שהסטטוס שלהן הוא Pending.
         public async Task<int> CountPendingOrdersAsync()
         {
+            Log("Counting pending orders...");
+
             string sql = @"
                 SELECT COUNT(*)
                 FROM Orders
@@ -74,12 +98,18 @@ namespace DAL
 
             using var command = new MySqlCommand(sql, connection);
 
-            return Convert.ToInt32(await command.ExecuteScalarAsync());
+            int count = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            Log($"Pending orders count completed. Total pending orders: {count}");
+
+            return count;
         }
 
-        // שליפת ארבע ההזמנות האחרונות כולל שם הלקוח
+        // שליפת ארבע ההזמנות האחרונות יחד עם שם הלקוח שביצע כל הזמנה.
         public async Task<List<AdminRecentOrder>> GetRecentOrdersAsync()
         {
+            Log("Retrieving the four most recent orders...");
+
             string sql = @"
                 SELECT
                     Orders.OrderID,
@@ -119,12 +149,16 @@ namespace DAL
                 orders.Add(order);
             }
 
+            Log($"Recent orders retrieved successfully. Total orders: {orders.Count}");
+
             return orders;
         }
 
-        // שליפת מספר ההזמנות בכל אחד משבעת הימים האחרונים
+        // שליפת מספר ההזמנות שבוצעו בכל אחד משבעת הימים האחרונים.
         public async Task<List<AdminWeeklyActivity>> GetWeeklyActivityAsync()
         {
+            Log("Retrieving weekly order activity...");
+
             string sql = @"
                 SELECT
                     DAYOFWEEK(OrderDate) AS DayNumber,
@@ -181,6 +215,13 @@ namespace DAL
                     DayName = dayNames[(int)date.DayOfWeek],
                     OrderCount = count
                 });
+            }
+
+            Log("Weekly activity retrieved successfully.");
+
+            foreach (var day in activity)
+            {
+                Log($"Day: {day.DayName}, Orders: {day.OrderCount}");
             }
 
             return activity;

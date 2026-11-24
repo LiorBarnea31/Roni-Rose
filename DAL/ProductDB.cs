@@ -1,21 +1,31 @@
-﻿
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 using Model;
 
 namespace DAL
 {
+    // מחלקה שאחראית על ביצוע פעולות מול טבלת המוצרים במסד הנתונים.
     public class ProductDB
     {
+        // שמירת מחרוזת החיבור למסד הנתונים.
         private readonly string connectionString;
 
+        // הדפסת הודעות לוג למסוף.
+        private static void Log(string message)
+        {
+            Console.WriteLine($"[PRODUCT DB] {DateTime.Now:HH:mm:ss} - {message}");
+        }
+
+        // Constructor שמקבל את מחרוזת החיבור ושומר אותה.
         public ProductDB(string connectionString)
         {
             this.connectionString = connectionString;
         }
 
-        // Get all products
+        // שליפת כל המוצרים ממסד הנתונים.
         public async Task<List<Product>> GetAllProductsAsync()
         {
+            Log("Retrieving all products...");
+
             List<Product> products = new List<Product>();
 
             string sql = @"
@@ -56,12 +66,16 @@ namespace DAL
                 products.Add(product);
             }
 
+            Log($"Products retrieved successfully. Total products: {products.Count}");
+
             return products;
         }
 
-        // Add product
+        // הוספת מוצר חדש למסד הנתונים.
         public async Task<int> AddProductAsync(Product product)
         {
+            Log($"Starting product creation. Product name: {product.ProductName}");
+
             string sql = @"
                 INSERT INTO Products
                 (ProductName, Description, Price, ProductImageBlob, ImageUrl, CategoryID)
@@ -70,6 +84,8 @@ namespace DAL
 
             using var connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
+
+            Log("Connected to database. Inserting new product...");
 
             using var command = new MySqlCommand(sql, connection);
 
@@ -85,12 +101,18 @@ namespace DAL
 
             await command.ExecuteNonQueryAsync();
 
-            return Convert.ToInt32(command.LastInsertedId);
+            int productId = Convert.ToInt32(command.LastInsertedId);
+
+            Log($"Product created successfully. Product ID: {productId}, Name: {product.ProductName}");
+
+            return productId;
         }
 
-        // Update product
+        // עדכון פרטים של מוצר קיים לפי המזהה שלו.
         public async Task<bool> UpdateProductAsync(Product product)
         {
+            Log($"Starting product update. Product ID: {product.ProductID}");
+
             string sql = @"
                 UPDATE Products
                 SET ProductName = @ProductName,
@@ -121,10 +143,12 @@ namespace DAL
 
             if (affectedRows > 0)
             {
+                Log($"Product updated successfully. Product ID: {product.ProductID}, Affected rows: {affectedRows}");
                 return true;
             }
 
-            // An unchanged product can also return 0 affected rows.
+            Log($"No rows changed during update. Checking if product exists. Product ID: {product.ProductID}");
+
             string checkSql = "SELECT COUNT(*) FROM Products WHERE ProductID = @ProductID;";
 
             using var checkCommand = new MySqlCommand(checkSql, connection);
@@ -132,12 +156,25 @@ namespace DAL
 
             int count = Convert.ToInt32(await checkCommand.ExecuteScalarAsync());
 
-            return count > 0;
+            bool exists = count > 0;
+
+            if (exists)
+            {
+                Log($"Product exists, but no values changed. Product ID: {product.ProductID}");
+            }
+            else
+            {
+                Log($"Product update failed. Product not found. Product ID: {product.ProductID}");
+            }
+
+            return exists;
         }
 
-        // Delete product
+        // מחיקת מוצר ממסד הנתונים לפי המזהה שלו.
         public async Task<bool> DeleteProductAsync(int productID)
         {
+            Log($"Starting product deletion. Product ID: {productID}");
+
             string sql = "DELETE FROM Products WHERE ProductID = @ProductID;";
 
             using var connection = new MySqlConnection(connectionString);
@@ -148,7 +185,18 @@ namespace DAL
 
             int affectedRows = await command.ExecuteNonQueryAsync();
 
-            return affectedRows > 0;
+            bool success = affectedRows > 0;
+
+            if (success)
+            {
+                Log($"Product deleted successfully. Product ID: {productID}");
+            }
+            else
+            {
+                Log($"Product deletion failed. Product not found. Product ID: {productID}");
+            }
+
+            return success;
         }
     }
 }
