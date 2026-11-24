@@ -1,7 +1,6 @@
 ﻿@page "/register"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-@using System.Net.Mail
 @using Model
 @using View.Components.Shared
 
@@ -175,12 +174,29 @@
             return;
         }
 
-        if (!MailAddress.TryCreate(email, out _))
+        // בדיקת תקינות שם המשתמש
+        string error = UserValidator.ValidateUsername(username);
+
+        // בדיקת תקינות האימייל
+        if (error == "")
         {
-            errorMessage = "כתובת האימייל לא תקינה.";
+            error = UserValidator.ValidateEmail(email);
+        }
+
+        // בדיקת תקינות הסיסמה
+        if (error == "")
+        {
+            error = UserValidator.ValidatePassword(password);
+        }
+
+        // אם נמצאה שגיאה, מציגים אותה ולא ממשיכים
+        if (error != "")
+        {
+            errorMessage = error;
             return;
         }
 
+        // בדיקת התאמת הסיסמאות
         if (password != confirmPassword)
         {
             errorMessage = "הסיסמה ואימות הסיסמה אינם תואמים.";

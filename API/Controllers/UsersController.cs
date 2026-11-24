@@ -1,4 +1,5 @@
-﻿using DAL;
+﻿
+using DAL;
 using Microsoft.AspNetCore.Mvc;
 using Model;
 
@@ -91,6 +92,17 @@ namespace API.Controllers
                 return BadRequest("יש למלא את כל השדות הנדרשים.");
             }
 
+            // בדיקת תקינות הנתונים באמצעות מחלקת UserValidator.
+            List<string> errors = UserValidator.Validate(user);
+
+            // אם נמצאו שגיאות, מחזירים קוד 400 עם רשימת השגיאות.
+            if (errors.Count > 0)
+            {
+                Console.WriteLine($"[Register] Failed, invalid data: {user.Username}");
+
+                return BadRequest(errors);
+            }
+
             // הסרת רווחים מיותרים מתחילת וסוף שם המשתמש והאימייל.
             user.Username = user.Username.Trim();
             user.Email = user.Email.Trim();
@@ -166,7 +178,6 @@ namespace API.Controllers
 
         // שינוי הסיסמה של משתמש מסוים.
         // PUT api/users/5/password
-        [HttpPut("{id:int}/password")]
         public async Task<IActionResult> UpdatePassword(int id, [FromBody] string newPassword)
         {
             // אם שינוי הסיסמה הצליח מחזירים 204, אחרת מחזירים 404.
